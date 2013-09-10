@@ -1,0 +1,53 @@
+#!/usr/bin/env ruby
+require 'fileutils'
+require 'yaml'
+
+class Casher
+  include FileUtils
+
+  def initialize
+    @casher_dir = ENV['CASHER_DIR'] || File.expand_path(".casher", ENV["HOME"])
+    @mtime_file = File.expand_path('mtime.yml', @casher_dir)
+    @fetch_tar  = File.expand_path('fetch.tbz', @casher_dir)
+    @push_tar   = File.expand_path('push.tbz', @casher_dir)
+    @mtimes     = File.exist?(@mtime_file) ? YAML.load_file(@mtime_file) : {}
+    mkdir_p @casher_dir
+  end
+
+  def run(command, argument)
+    raise "unknown command" unless %w[fetch add push].include? command
+    send(command, argument)
+  end
+
+  def fetch(url)
+    system "curl #{url} -o #{@fetch_tar}"
+  end
+
+  def add(path)
+    path = File.expand_path(path)
+    mkdir_p path
+    tar(:x, @fetch_tar, path) if File.exist? @fetch_tar
+    @mtimes[path] = Time.now.to_i
+    File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
+  end
+
+  def push(url)
+    return unless changed?
+    tar(:c, @push_tar, *@mtimes.keys)
+    system "curl -T #{@push_tar} #{url}"
+  end
+
+  def changed?
+    @mtimes.any? do |path, mtime|
+      Dir.glob("#{path}/**/*").any? do |file|
+        File.mtime(file).to_i > mtime
+      end
+    end
+  end
+
+  def tar(flag, file, *args)
+    system "tar -Pj#{flag}f #{file} #{args.join(" ")} 2>/dev/null"
+  end
+end
+
+Casher.new.run(*ARGV) if $0 == __FILE__
