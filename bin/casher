@@ -32,9 +32,12 @@ class Casher
   end
 
   def push(url)
-    return unless changed?
-    tar(:c, @push_tar, *@mtimes.keys)
-    system "curl -T #{@push_tar} #{url}"
+    if changed?
+      tar(:c, @push_tar, *@mtimes.keys)
+      system "curl -T #{@push_tar} #{url}"
+    else
+      puts "nothing changed, not updating cache"
+    end
   end
 
   def changed?
