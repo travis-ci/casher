@@ -20,7 +20,7 @@ class Casher
   end
 
   def fetch(url)
-    system "curl #{url} -o #{@fetch_tar}"
+    system "curl %p -o %p" % [url, @fetch_tar]
   end
 
   def add(path)
@@ -34,7 +34,7 @@ class Casher
   def push(url)
     if changed?
       tar(:c, @push_tar, *@mtimes.keys)
-      system "curl -T #{@push_tar} #{url}"
+      system "curl -T %p %p" % [@push_tar, url]
     else
       puts "nothing changed, not updating cache"
     end
