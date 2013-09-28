@@ -20,11 +20,14 @@ class Casher
   end
 
   def fetch(url)
+    puts "attempting to download cache archive"
     system "curl %p -o %p" % [url, @fetch_tar]
+    puts File.exist?(@fetch_tar) ? "cache available" : "no cache yet"
   end
 
   def add(path)
     path = File.expand_path(path)
+    puts "adding #{path} to cache"
     mkdir_p path
     tar(:x, @fetch_tar, path) if File.exist? @fetch_tar
     @mtimes[path] = Time.now.to_i
@@ -33,7 +36,9 @@ class Casher
 
   def push(url)
     if changed?
+      puts "changes detected, packing new archive"
       tar(:c, @push_tar, *@mtimes.keys)
+      puts "uploading archive"
       system "curl -T %p %p" % [@push_tar, url]
     else
       puts "nothing changed, not updating cache"
