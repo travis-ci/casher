@@ -21,8 +21,13 @@ class Casher
 
   def fetch(url)
     puts "attempting to download cache archive"
-    system "curl %p -o %p" % [url, @fetch_tar]
-    puts File.exist?(@fetch_tar) ? "cache available" : "no cache yet"
+    if system "curl %p -o %p -f " % [url, @fetch_tar]
+      puts "found cache"
+    else
+      puts "could not download cache"
+      puts File.read(@fetch_tar)
+      rm @fetch_tar
+    end
   end
 
   def add(path)
