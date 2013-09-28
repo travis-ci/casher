@@ -21,8 +21,7 @@ class Casher
 
   def fetch(url)
     puts "attempting to download cache archive"
-    # TODO: add -S
-    if system "curl --tcp-nodelay %p -o %p -f " % [url, @fetch_tar]
+    if system "curl --tcp-nodelay %p -o %p -f -s" % [url, @fetch_tar]
       puts "found cache"
     else
       puts "could not download cache"
@@ -47,7 +46,7 @@ class Casher
       puts "changes detected, packing new archive"
       tar(:c, @push_tar, *@mtimes.keys)
       puts "uploading archive"
-      system "curl -T %p %p" % [@push_tar, url]
+      system "curl -T %p %p -s -S" % [@push_tar, url]
     else
       puts "nothing changed, not updating cache"
     end
