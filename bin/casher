@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+require 'shellwords'
 require 'fileutils'
 require 'yaml'
 
@@ -21,7 +22,7 @@ class Casher
 
   def fetch(url)
     puts "attempting to download cache archive"
-    if system "curl --tcp-nodelay %p -o %p -f -s >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.log" % [url, @fetch_tar]
+    if system "curl --tcp-nodelay %p -o %p -f -s >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar]
       puts "found cache"
     else
       puts "could not download cache"
@@ -46,7 +47,9 @@ class Casher
       puts "changes detected, packing new archive"
       tar(:c, @push_tar, *@mtimes.keys)
       puts "uploading archive"
-      system "curl -T %p %p -s -S  >#{@casher_dir}/push.log 2>#{@casher_dir}/push.log" % [@push_tar, url]
+      unless system "curl -T %p %p -s -S  >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
+        puts "failed to upload cache", File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")
+      end
     else
       puts "nothing changed, not updating cache"
     end
@@ -65,7 +68,10 @@ class Casher
   end
 
   def tar(flag, file, *args)
-    system "tar -Pj#{flag}f #{file} #{args.join(" ")} 2>/dev/null"
+    command = "tar -Pj#{flag}f #{Shellwords.escape(file)} #{Shellwords.join(args)}"
+    unless system "#{command} 2>#{@casher_dir}/tar.err.log >#{@casher_dir}/tar.log"
+      puts "FAILED: #{command}", File.read("#{@casher_dir}/tar.err.log"), File.read("#{@casher_dir}/tar.log")
+    end
   end
 end
 
