@@ -57,6 +57,7 @@ class Casher
     @mtimes.any? do |path, mtime|
       Dir.glob("#{path}/**/*").any? do |file|
         next if File.mtime(file).to_i <= mtime
+        next if File.directory?(file)
         puts "change detected: #{file}"
         true
       end
