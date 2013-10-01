@@ -56,6 +56,7 @@ class Casher
   end
 
   def changed?
+    return false if @mtimes.empty?
     return true unless File.exist? @fetch_tar
     @mtimes.any? do |path, mtime|
       Dir.glob("#{path}/**/*").any? do |file|
