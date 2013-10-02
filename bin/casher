@@ -33,12 +33,14 @@ class Casher
     end
   end
 
-  def add(path)
-    path = File.expand_path(path)
-    puts "adding #{path} to cache"
-    mkdir_p path
-    tar(:x, @fetch_tar, path) if File.exist? @fetch_tar
-    @mtimes[path] = Time.now.to_i
+  def add(*paths)
+    paths.each do |path|
+      path = File.expand_path(path)
+      puts "adding #{path} to cache"
+      mkdir_p path
+      tar(:x, @fetch_tar, path) if File.exist? @fetch_tar
+      @mtimes[path] = Time.now.to_i
+    end
     File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
   end
 
