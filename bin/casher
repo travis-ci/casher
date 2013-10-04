@@ -17,15 +17,7 @@ class Casher
 
   def run(command, *arguments)
     raise "unknown command" unless %w[fetch add push].include? command
-    time(command) { send(command, *arguments) }
-  end
-
-  def time(command)
-    start = Time.now
-    yield
-  ensure
-    duration = Time.now - start
-    puts "#{command} took #{duration} seconds"
+    send(command, *arguments)
   end
 
   def fetch(*urls)
