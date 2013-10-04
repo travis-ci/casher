@@ -38,7 +38,7 @@ class Casher
       path = File.expand_path(path)
       puts "adding #{path} to cache"
       mkdir_p path
-      tar(:x, @fetch_tar, path) if File.exist? @fetch_tar
+      tar(:x, @fetch_tar, path) { puts "#{path} is not yet cached" }
       @mtimes[path] = Time.now.to_i
     end
     File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
@@ -70,11 +70,10 @@ class Casher
     end
   end
 
-  def tar(flag, file, *args)
+  def tar(flag, file, *args, &block)
     command = "tar -Pj#{flag}f #{Shellwords.escape(file)} #{Shellwords.join(args)}"
-    unless system "#{command} 2>#{@casher_dir}/tar.err.log >#{@casher_dir}/tar.log"
-      puts "FAILED: #{command}", File.read("#{@casher_dir}/tar.err.log"), File.read("#{@casher_dir}/tar.log")
-    end
+    block ||= proc { puts "FAILED: #{command}", File.read("#{@casher_dir}/tar.err.log"), File.read("#{@casher_dir}/tar.log") }
+    block.call unless system "#{command} 2>#{@casher_dir}/tar.err.log >#{@casher_dir}/tar.log"
   end
 end
 
