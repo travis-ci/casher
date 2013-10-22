@@ -87,6 +87,7 @@ class Casher
     @mtimes.keys.each do |directory|
       print directory + " "
       Dir.glob File.expand_path('**/*', directory) do |file|
+        next if File.directory?(file)
         md5sums[file] = md5(file)
         print '.'
       end
