@@ -9,8 +9,9 @@ class Casher
   def initialize
     @casher_dir = ENV['CASHER_DIR'] || File.expand_path(".casher", ENV["HOME"])
     @mtime_file = File.expand_path('mtime.yml', @casher_dir)
+    @md5_file   = File.expand_path('md5.yml',   @casher_dir)
     @fetch_tar  = File.expand_path('fetch.tbz', @casher_dir)
-    @push_tar   = File.expand_path('push.tbz', @casher_dir)
+    @push_tar   = File.expand_path('push.tbz',  @casher_dir)
     @mtimes     = File.exist?(@mtime_file) ? YAML.load_file(@mtime_file) : {}
     mkdir_p @casher_dir
   end
@@ -24,6 +25,8 @@ class Casher
     puts "attempting to download cache archive"
     if urls.any? { |url| system "curl --tcp-nodelay %p -o %p -f -s >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar] }
       puts "found cache"
+      puts "extracting checksums"
+      tar(:x, @fetch_tar, @md5_file) { puts "checksums not yet calculated, skipping" }
     else
       puts "could not download cache"
       if File.exist? @fetch_tar
@@ -47,7 +50,8 @@ class Casher
   def push(url)
     if changed?
       puts "changes detected, packing new archive"
-      tar(:c, @push_tar, *@mtimes.keys)
+      store_md5
+      tar(:c, @push_tar, @md5_file, *@mtimes.keys)
       puts "uploading archive"
       unless system "curl -T %p %p -s -S  >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
         puts "failed to upload cache", File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")
@@ -60,14 +64,35 @@ class Casher
   def changed?
     return false if @mtimes.empty?
     return true unless File.exist? @fetch_tar
+    md5sums = File.exist?(@md5_file) ? YAML.load_file(@md5_file) : {}
     @mtimes.any? do |path, mtime|
       Dir.glob("#{path}/**/*").any? do |file|
-        next if File.mtime(file).to_i <= mtime
         next if File.directory?(file)
+        next if File.mtime(file).to_i <= mtime
+        next if md5sums[file] and md5sums[file] == md5(file)
         puts "change detected: #{file}"
         true
       end
     end
+  end
+
+  def md5(file)
+    sum = `md5sum #{file}`.split(" ", 2).first
+    sum.to_s.empty? ? Time.now.to_i : sum
+  end
+
+  def store_md5
+    puts "calculating checksums"
+    md5sums = {}
+    @mtimes.keys.each do |directory|
+      print directory + " "
+      Dir.glob File.expand_path('**/*', directory) do |file|
+        md5sums[file] = md5(file)
+        print '.'
+      end
+      puts
+    end
+    File.open(@md5_file, 'w') { |f| f << md5sums.to_yaml }
   end
 
   def tar(flag, file, *args, &block)
