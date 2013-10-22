@@ -62,18 +62,16 @@ class Casher
   end
 
   def changed?
-    return false if @mtimes.empty?
     return true unless File.exist? @fetch_tar
-    md5sums = File.exist?(@md5_file) ? YAML.load_file(@md5_file) : {}
-    @mtimes.any? do |path, mtime|
-      Dir.glob("#{path}/**/*").any? do |file|
-        next if File.directory?(file)
-        next if File.mtime(file).to_i <= mtime
-        next if md5sums[file] and md5sums[file] == md5(file)
-        puts "change detected: #{file}"
-        true
-      end
+    each_file do |file, mtime|
+      next if unchanged? file, mtime
+      puts "#{file} was modified"
+      true
     end
+  end
+
+  def md5sums
+    @md5sums ||= File.exist?(@md5_file) ? YAML.load_file(@md5_file) : {}
   end
 
   def md5(file)
@@ -81,17 +79,24 @@ class Casher
     sum.to_s.empty? ? Time.now.to_i : sum
   end
 
-  def store_md5
-    puts "calculating checksums"
-    md5sums = {}
-    @mtimes.keys.each do |directory|
-      puts directory
-      Dir.glob File.expand_path('**/*', directory) do |file|
-        next if File.directory?(file)
-        md5sums[file] = md5(file)
+  def each_file
+    @mtimes.each do |path, mtime|
+      Dir.glob("#{path}/**/*") do |file|
+        yield file, mtime unless File.directory?(file)
       end
     end
-    File.open(@md5_file, 'w') { |f| f << md5sums.to_yaml }
+  end
+
+  def unchanged?(file, mtime)
+    return true if File.mtime(file).to_i <= mtime
+    md5sums[file] and md5sums[file] == md5(file)
+  end
+
+  def store_md5
+    puts "calculating checksums"
+    new_md5sums = {}
+    each_file { |f, m| new_md5sums[f] = unchanged?(f, m) ? md5sums[f] : md5(f) }
+    File.open(@md5_file, 'w') { |f| f << new_md5sums.to_yaml }
   end
 
   def tar(flag, file, *args, &block)
