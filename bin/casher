@@ -85,13 +85,11 @@ class Casher
     puts "calculating checksums"
     md5sums = {}
     @mtimes.keys.each do |directory|
-      print directory + " "
+      puts directory
       Dir.glob File.expand_path('**/*', directory) do |file|
         next if File.directory?(file)
         md5sums[file] = md5(file)
-        print '.'
       end
-      puts
     end
     File.open(@md5_file, 'w') { |f| f << md5sums.to_yaml }
   end
