@@ -93,9 +93,17 @@ class Casher
   end
 
   def store_md5
-    puts "calculating checksums"
+    print "calculating checksums "
     new_md5sums = {}
-    each_file { |f, m| new_md5sums[f] = unchanged?(f, m) ? md5sums[f] : md5(f) }
+    each_file do |file, mtime|
+      if unchanged? file, mtime
+        new_md5sums[file] = md5sums[file] if md5sums.include? file
+      else
+        print '.'
+        new_md5sums[file] = md5(file)
+      end
+    end
+    puts
     File.open(@md5_file, 'w') { |f| f << new_md5sums.to_yaml }
   end
 
