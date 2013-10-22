@@ -77,7 +77,7 @@ class Casher
   end
 
   def md5(file)
-    sum = `md5sum #{file}`.split(" ", 2).first
+    sum = `md5sum #{Shellwords.escape(file)}`.split(" ", 2).first
     sum.to_s.empty? ? Time.now.to_i : sum
   end
 
