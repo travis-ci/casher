@@ -66,8 +66,9 @@ class Casher
     each_file do |file, mtime|
       next if unchanged? file, mtime
       puts "#{file} was modified"
-      true
+      return true
     end
+    return false
   end
 
   def md5sums
@@ -88,22 +89,28 @@ class Casher
   end
 
   def unchanged?(file, mtime)
-    return true if File.mtime(file).to_i <= mtime
+    return true if unchanged_mtime?(file, mtime)
     md5sums[file] and md5sums[file] == md5(file)
   end
 
+  def unchanged_mtime?(file, mtime)
+    File.mtime(file).to_i <= mtime
+  end
+
   def store_md5
-    print "calculating checksums "
+    $stdout.print "calculating checksums "
+    $stdout.flush
     new_md5sums = {}
     each_file do |file, mtime|
-      if unchanged? file, mtime
-        new_md5sums[file] = md5sums[file] if md5sums.include? file
+      if unchanged_mtime?(file, mtime) && md5sums.include?(file)
+        new_md5sums[file] = md5sums[file]
       else
-        print '.'
+        $stdout.print '.'
+        $stdout.flush
         new_md5sums[file] = md5(file)
       end
     end
-    puts
+    $stdout.puts
     File.open(@md5_file, 'w') { |f| f << new_md5sums.to_yaml }
   end
 
