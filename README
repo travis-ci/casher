@@ -1,0 +1,19 @@
+Usage: casher [options] command [arguments]
+    -H, --header VALUE               add given header to HTTP requests
+    -m, --check-mtime                use mtime as indicator if a file changed
+    -M, --no-check-mtime             don't use mtime as indicator if a file changed
+    -a, --algorithm NAME             checksum algorithm to use for detecting changes
+    -d, --debug                      print helpful debug output, show stacktraces
+    -i, --internal                   run internal command
+    -g, --enable-gc                  enable Garbage collector
+    -c, --casher-dir PATH            set directory for archives and meta data
+    -?, -h, --help                   display help
+
+Available commands:
+    help, checksums, extract.
+
+Available checksum algorithms:
+    crc, detect, md5, nop, sha1, sha224, sha256, sha384, sha512, tiger, whirlpool.
+
+If set to detect, it will use tiger, md5 or crc, depending on availability.
+If set to nop, files will be assumed to have changed.
