@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+require 'sinatra'
+require 'fileutils'
+
+set(:server, :puma)
+set(:casher_store, ENV['CASHER_STORE'] || File.expand_path('../store', settings.root))
+FileUtils.mkdir_p(settings.casher_store)
+before { env['puma.socket'] << "HTTP/1.1 100 Continue\r\n\r\n" if env['HTTP_EXPECT'] == "100-continue" }
+get('/') { "Simple web server for storing and serving casher archives. Not meant for production." }
+get('/:name') { |n| send_file("#{settings.casher_store}/#{n}") }
+put('/:name') { |n| "Uploaded!" if File.write("#{settings.casher_store}/#{n}", request.body.read) }
