@@ -10,7 +10,7 @@ Usage: casher [options] command [arguments]
     -?, -h, --help                   display help
 
 Available commands:
-    help, checksums, extract.
+    checksums, extract, help.
 
 Available checksum algorithms:
     crc, detect, md5, nop, sha1, sha224, sha256, sha384, sha512, tiger, whirlpool.

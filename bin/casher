@@ -67,7 +67,7 @@ class Casher
     puts <<-HELP.gsub(/^      |\n\Z/, '')
       #{text}
       Available commands:
-          #{public_methods.map { |m| m.to_s[/(.+)!/, 1] }.compact.join(", ")}.
+          #{public_methods.sort.map { |m| m.to_s[/(.+)!/, 1] }.compact.join(", ")}.
 
       Available checksum algorithms:
           #{ALGORITHMS.keys.sort.join(", ")}.
