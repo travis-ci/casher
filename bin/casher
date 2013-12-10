@@ -63,6 +63,24 @@ class Casher
     @algorithm   = :detect
   end
 
+  def fetch!(*urls)
+    puts "attempting to download cache archive"
+    if urls.any? { |url| curl(url, o: file('fetch.tbz')) }
+      puts "found cache"
+    else
+      puts "could not download cache"
+      rm file('fetch.tbz') if File.exist? file('fetch.tbz')
+    end
+  end
+
+  def add!(*paths)
+    raise NotImplementedError
+  end
+
+  def push!(url)
+    raise NotImplementedError
+  end
+
   def help!(text)
     puts <<-HELP.gsub(/^      |\n\Z/, '')
       #{text}
@@ -103,6 +121,13 @@ class Casher
     require 'rubygems' unless defined? Gem
     require 'pry'
     binding.pry
+  end
+
+  def curl(url, options = {})
+    args = ["curl", "--tcp-nodelay -fsS",
+      *options.map { |k,v| "-#{k} #{_ v}" }, *headers.map { |h| "-H #{_ h}" },
+      url, ">#{file("curl.log")}", "2>#{file("curl.err.log")}"]
+    system args.compact.join(" ")
   end
 
   private
