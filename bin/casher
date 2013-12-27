@@ -6,12 +6,12 @@ require 'shellwords'
 require 'fileutils'
 
 class Casher
-  SEED = 1386246902
+  SEED       = 1386246902
   ALGORITHMS = {
     nop:       nil,
     crc:       %w[ cksum      sum        ],
-    detect:    %w[ tigerdeep  md5sum     ],
-    md5:       %w[ md5deep    md5sum     ],
+    detect:    %w[ tigerdeep  md5sum md5 ],
+    md5:       %w[ md5deep    md5sum md5 ],
     sha1:      %w[ sha1deep   sha1sum    ],
     sha224:    %w[ sha224                ],
     sha256:    %w[ sha256depp sha256sum  ],
@@ -21,7 +21,7 @@ class Casher
     whirlpool: %w[ whirlpooldeep         ]
   }
 
-  attr_accessor :headers, :check_mtime, :algorithm, :debug, :casher_dir
+  attr_accessor :headers, :check_mtime, :algorithm, :debug, :casher_dir, :checksum_command
   alias_method :check_mtime?, :check_mtime
   alias_method :debug?, :debug
 
@@ -40,6 +40,7 @@ class Casher
     parser.on("-m", "--check-mtime", "use mtime as indicator if a file changed") { casher.check_mtime = true }
     parser.on("-M", "--no-check-mtime", "don't use mtime as indicator if a file changed") { casher.check_mtime = false }
     parser.on("-a", "--algorithm NAME", "checksum algorithm to use for detecting changes") { |a| casher.algorithm = a.to_sym }
+    parser.on("-A", "--checksum-command CMD", "command used for generating checksums") { |c| casher.checksum_command = c }
     parser.on("-d", "--debug", "print helpful debug output, show stacktraces") { casher.debug = true }
     parser.on("-i", "--internal", "run internal command") { append = "" }
     parser.on("-g", "--enable-gc", "enable Garbage collector") { GC.enable }
@@ -49,7 +50,8 @@ class Casher
     raise "missing command"            unless command ||= args.shift and method = command + append
     raise "unknown command #{command}" unless casher.respond_to? method or casher.debug?
     args.unshift(parser.help) if command == "help"
-    casher.public_send(method, *args)
+    result = casher.public_send(method, *args)
+    casher.debug(result.inspect) if append.empty?
   rescue => error
     raise error if casher.debug?
     $stderr.puts error.message
@@ -106,11 +108,15 @@ class Casher
 
   def checksums(*paths)
     return {} if paths.empty?
-    return dummy_checksums(*paths) unless commands = ALGORITHMS.fetch(algorithm) { raise "unknown algorithm %s" % algorithm }
-    raise "#{algorithm} not available" unless command = commands.detect { |c| system "which #{c} >/dev/null" }
-    command = command.end_with?('deep') ? "#{command} -r #{_ paths}" : "find #{_ paths} -type f | xargs #{command}"
+    return dummy_checksums(*paths) unless checksum_command
+    command = checksum_command.end_with?('deep') ? "#{checksum_command} -r #{_ paths}" : "find #{_ paths} -type f | xargs #{checksum_command}"
     output  = `#{command} 2>/dev/null`
-    Hash[output.each_line.map { |l| l.chomp.split(" ", 2).reverse }]
+    raise "command %p failed with exit status %i" % [command, $?.exitstatus] unless $?.success?
+    map = output.each_line.map do |line|
+      file, hash = line =~ /^MD5 \((.*)\) = (\S+)$/ ? [$1, $2] : line.chomp.split(" ", 2).reverse
+      [File.expand_path(file), hash]
+    end
+    Hash[map]
   end
 
   def debug(*lines)
@@ -128,6 +134,12 @@ class Casher
       *options.map { |k,v| "-#{k} #{_ v}" }, *headers.map { |h| "-H #{_ h}" },
       url, ">#{file("curl.log")}", "2>#{file("curl.err.log")}"]
     system args.compact.join(" ")
+  end
+
+  def checksum_command
+    @checksum_command ||= if commands = ALGORITHMS.fetch(algorithm) { raise "unknown algorithm %s" % algorithm }
+      commands.detect { |c| system "which #{c} >/dev/null" } or raise "#{algorithm} not available"
+    end
   end
 
   private

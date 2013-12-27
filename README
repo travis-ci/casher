@@ -3,6 +3,7 @@ Usage: casher [options] command [arguments]
     -m, --check-mtime                use mtime as indicator if a file changed
     -M, --no-check-mtime             don't use mtime as indicator if a file changed
     -a, --algorithm NAME             checksum algorithm to use for detecting changes
+    -A, --checksum-command CMD       command used for generating checksums
     -d, --debug                      print helpful debug output, show stacktraces
     -i, --internal                   run internal command
     -g, --enable-gc                  enable Garbage collector
