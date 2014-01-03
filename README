@@ -8,6 +8,7 @@ Usage: casher [options] command [arguments]
     -i, --internal                   run internal command
     -g, --enable-gc                  enable Garbage collector
     -c, --casher-dir PATH            set directory for archives and meta data
+    -f, --force                      override existing files/directories
     -?, -h, --help                   display help
 
 Available commands:
