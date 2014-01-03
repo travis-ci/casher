@@ -117,8 +117,20 @@ class Casher
   end
 
   def extract!(*paths)
-    puts "reading from cache: #{paths.map(&:inspect).join(", ")}"
-    extract(*paths) { $stderr.puts(*tar_error.scan(/^tar: (.*:.*)$/i)) }
+    puts "Reading from cache: #{paths.map { |p| display_path(p) }.join(", ")}."
+    exists  = force ? [] : paths.select { |p| File.exist?(p) }
+    missing = paths - exists
+    if extract(*missing) { debug(*tar_error.scan(/^tar: (.*:.*)$/i).flatten) }
+      paths.each do |path|
+        case path
+        when *exists  then flag, message = yellow(?-), "already exists"
+        when *missing then flag, message = File.exist?(path) ? [green(?+), "found in cache"] : [red(?x), "not yet in cache"]
+        else               flag, message = yellow(??), "not sure what happened"
+        end
+
+        say "[#{bold(flag)}] #{display_path(path)}: #{message}"
+      end
+    end
   end
 
   def checksums(*paths)
@@ -162,6 +174,11 @@ class Casher
     end
   end
 
+    def display_path(path, type = "directory")
+      type = "metadata" if path.start_with? casher_dir
+      path = File.basename(path) if type == "metadata"
+      "#{bold("%p")} %s" % [path, type]
+    end
 
     def dummy_checksums(*paths)
       checksum = ((Time.now-SEED).to_f*(10**10)).to_i.to_s(32)
@@ -174,7 +191,24 @@ class Casher
     end
 
     def extract(*paths)
-      tar(:x, "foo", *paths) { yield if block_given? }
+      if File.exist? file('fetch.tbz')
+        paths.map! { |p| File.expand_path(p) }.sort!
+        tar(:x, file('fetch.tbz'), *paths) { yield if block_given? }
+        true
+      else
+        info "No cache to read from."
+        false
+      end
+    end
+
+    def tar(flag, file, *args, &block)
+      command = "tar -Pj#{flag}f #{Shellwords.escape(file)} #{Shellwords.join(args)}"
+      block ||= proc { error "FAILED: #{command}", tar_error }
+      block.call unless system "#{command} 2>#{file("tar.err.log")} >#{file("tar.log")}"
+    end
+
+    def tar_error
+      load_file("tar.err.log")
     end
 
     def load_object(name, default = nil)
