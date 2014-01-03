@@ -51,10 +51,10 @@ class Casher
     raise "unknown command #{command}" unless casher.respond_to? method or casher.debug?
     args.unshift(parser.help) if command == "help"
     result = casher.public_send(method, *args)
-    casher.debug(result.inspect) if append.empty?
+    casher.debug("return value: \e[1m%p\e[0m" % result) if append.empty?
   rescue => error
     raise error if casher.debug?
-    $stderr.puts error.message
+    warn error.message
     exit 1
   end
 
@@ -115,7 +115,7 @@ class Casher
     return dummy_checksums(*paths) unless checksum_command
     command = checksum_command.end_with?('deep') ? "#{checksum_command} -r #{_ paths}" : "find #{_ paths} -type f | xargs #{checksum_command}"
     output  = `#{command} 2>/dev/null`
-    raise "command %p failed with exit status %i" % [command, $?.exitstatus] unless $?.success?
+    error "Command %p failed with exit status %i" % [command, $?.exitstatus] unless $?.success?
     map = output.each_line.map do |line|
       file, hash = line =~ /^MD5 \((.*)\) = (\S+)$/ ? [$1, $2] : line.chomp.split(" ", 2).reverse
       [File.expand_path(file), hash]
@@ -123,14 +123,13 @@ class Casher
     Hash[map]
   end
 
-  def debug(*lines)
-    lines.each { |l| $stderr.puts("* #{l}") } if debug?
-  end
-
   def console
-    require 'rubygems' unless defined? Gem
     require 'pry'
     binding.pry
+  rescue LoadError => error
+    raise error if error.path != 'pry' or defined? Gem
+    require 'rubygems'
+    retry
   end
 
   def curl(url, options = {})
@@ -140,13 +139,18 @@ class Casher
     system args.compact.join(" ")
   end
 
+  def debug(*lines)
+    say(*lines, on: $stderr, color: :purple) { |l| "* #{l}"} if debug?
+  end
+
+  private
+
   def checksum_command
     @checksum_command ||= if commands = ALGORITHMS.fetch(algorithm) { raise "unknown algorithm %s" % algorithm }
       commands.detect { |c| system "which #{c} >/dev/null" } or raise "#{algorithm} not available"
     end
   end
 
-  private
 
     def dummy_checksums(*paths)
       checksum = ((Time.now-SEED).to_f*(10**10)).to_i.to_s(32)
@@ -202,6 +206,40 @@ class Casher
 
     def _(input)
       Array === input ? Shellwords.join(input) : Shellwords.escape(input)
+    end
+
+    def info(*lines)
+      say(*lines, on: $stderr, color: :yellow)
+    end
+
+    def error(*messages)
+      messages.map! { |m| m.respond_to?(:message) ? m.message : m.to_s }
+      warn(messages)
+      exit 1
+    end
+
+    def warn(*lines)
+      say(*lines, on: $stderr, color: :red, bold: true)
+    end
+
+    def say(*lines, on: $stdout, color: nil, bold: false, &block)
+      lines.map! { |l| format(block ? block[l] : l, color: color, bold: bold, on: on) }
+      on.puts(*lines)
+    end
+
+    def bold(string, **options)
+      format(string, bold: true, **options)
+    end
+
+    def format(string, on: $stdout, color: nil, bold: false)
+      return string unless color || bold and on.tty?
+      "\e[#{COLORS.index(color || :white) + 30}#{";1" if bold}m#{string}\e[0m"
+    end
+
+    COLORS.each do |color|
+      define_method(color) do |string, **options|
+        format(string, color: color, **options)
+      end
     end
 
   run(*ARGV)
