@@ -22,9 +22,10 @@ class Casher
     whirlpool: %w[ whirlpooldeep         ]
   }
 
-  attr_accessor :headers, :check_mtime, :algorithm, :debug, :casher_dir, :checksum_command
+  attr_accessor :headers, :check_mtime, :algorithm, :debug, :casher_dir, :checksum_command, :force
   alias_method :check_mtime?, :check_mtime
   alias_method :debug?, :debug
+  alias_method :force?, :force
 
   def self.find(name)
     constant = constants.detect { |c| c.name.to_s.downcase == name }
@@ -46,6 +47,7 @@ class Casher
     parser.on("-i", "--internal", "run internal command") { append = "" }
     parser.on("-g", "--enable-gc", "enable Garbage collector") { GC.enable }
     parser.on("-c", "--casher-dir PATH", "set directory for archives and meta data") { |p| casher.casher_dir = p }
+    parser.on("-f", "--force", "override existing files/directories") { casher.force = true }
     parser.on("-?", "-h", "--help", "display help") { command = "help" }
     parser.parse! args
     raise "missing command"            unless command ||= args.shift and method = command + append
