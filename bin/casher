@@ -76,7 +76,11 @@ class Casher
   end
 
   def add!(*paths)
-    raise NotImplementedError
+    extract_paths = File.exist?(file('checksums')) ? paths : [file('checksums'), *paths]
+    extract!(*extract_paths)
+
+    mtimes = paths.map { |p| "#{Time.now.to_i} #{p}\n" }.join
+    store_file("mtimes", mtimes, mode: ?a)
   end
 
   def push!(url)
@@ -103,7 +107,7 @@ class Casher
 
   def extract!(*paths)
     puts "reading from cache: #{paths.map(&:inspect).join(", ")}"
-    extract(*paths) { puts(*tar_error.scan(/^tar: (.*:.*)$/i)) }
+    extract(*paths) { $stderr.puts(*tar_error.scan(/^tar: (.*:.*)$/i)) }
   end
 
   def checksums(*paths)
