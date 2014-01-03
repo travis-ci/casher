@@ -90,6 +90,14 @@ class Casher
     raise NotImplementedError
   end
 
+  def mtimes
+    @mtimes ||= begin
+      return debug("mtimes metadata missing") unless raw = load_file("mtimes")
+      entries = raw.scan(/^(\d+(?:\.\d+)?) (.+)$/).map { |i,f| [File.expand_path(f), Time.at(i.to_f)] }
+      Hash[sort(entries)]
+    end
+  end
+
   def help!(text)
     puts <<-HELP.gsub(/^      |\n\Z/, '')
       #{text}
