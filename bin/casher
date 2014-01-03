@@ -168,11 +168,11 @@ class Casher
 
   private
 
-  def checksum_command
-    @checksum_command ||= if commands = ALGORITHMS.fetch(algorithm) { raise "unknown algorithm %s" % algorithm }
-      commands.detect { |c| system "which #{c} >/dev/null" } or raise "#{algorithm} not available"
+    def checksum_command
+      @checksum_command ||= if commands = ALGORITHMS.fetch(algorithm) { raise "unknown algorithm %s" % algorithm }
+        commands.detect { |c| system "which #{c} >/dev/null" } or raise "#{algorithm} not available"
+      end
     end
-  end
 
     def display_path(path, type = "directory")
       type = "metadata" if path.start_with? casher_dir
