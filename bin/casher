@@ -82,7 +82,7 @@ class Casher
     extract_paths = File.exist?(file('checksums')) ? paths : [file('checksums'), *paths]
     extract!(*extract_paths)
 
-    mtimes = paths.map { |p| "#{Time.now.to_i} #{p}\n" }.join
+    mtimes = sort(paths).map { |p| "#{Time.now.to_f} #{p}\n" }.join
     store_file("mtimes", mtimes, mode: ?a)
   end
 
@@ -158,6 +158,11 @@ class Casher
     def dummy_checksums(*paths)
       checksum = ((Time.now-SEED).to_f*(10**10)).to_i.to_s(32)
       Hash[paths.each_with_object(checksum).to_a]
+    end
+
+    def sort(paths)
+      paths.sort_by! { |f,*| File.expand_path(f) }
+      paths
     end
 
     def extract(*paths)
