@@ -7,6 +7,7 @@ require 'fileutils'
 
 class Casher
   SEED       = 1386246902
+  COLORS     = %i[black red green yellow blue purple cyan white]
   ALGORITHMS = {
     nop:       nil,
     crc:       %w[ cksum      sum        ],
