@@ -146,15 +146,6 @@ class Casher
     Hash[map]
   end
 
-  def console
-    require 'pry'
-    binding.pry
-  rescue LoadError => error
-    raise error if error.path != 'pry' or defined? Gem
-    require 'rubygems'
-    retry
-  end
-
   def curl(url, options = {})
     args = ["curl", "--tcp-nodelay -fsS",
       *options.map { |k,v| "-#{k} #{_ v}" }, *headers.map { |h| "-H #{_ h}" },
