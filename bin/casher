@@ -86,6 +86,16 @@ class Casher
     store_file("mtimes", mtimes, mode: ?a)
   end
 
+  def list!
+    mtimes.each do |path, time|
+      say "[#{bold(File.exist?(path) ? green(?+) : red(?x))}] #{bold(rel(path))} (#{time})"
+    end
+  end
+
+  def pack!
+    raise NotImplementedError
+  end
+
   def push!(url)
     raise NotImplementedError
   end
@@ -168,7 +178,7 @@ class Casher
     def display_path(path, type = "directory")
       type = "metadata" if path.start_with? casher_dir
       path = File.basename(path) if type == "metadata"
-      "#{bold("%p")} %s" % [path, type]
+      "#{bold("%p")} %s" % [rel(path), type]
     end
 
     def dummy_checksums(*paths)
@@ -193,7 +203,7 @@ class Casher
     end
 
     def tar(flag, file, *args, &block)
-      command = "tar -Pj#{flag}f #{Shellwords.escape(file)} #{Shellwords.join(args)}"
+      command = "tar -Pj#{flag}f #{_ file} #{_ args}"
       block ||= proc { error "FAILED: #{command}", tar_error }
       block.call unless system "#{command} 2>#{file("tar.err.log")} >#{file("tar.log")}"
     end
@@ -270,6 +280,10 @@ class Casher
 
     def bold(string, **options)
       format(string, bold: true, **options)
+    end
+
+    def rel(path)
+      _(path.gsub("#{Dir.pwd}/", "")).gsub(Dir.home, '~')
     end
 
     def format(string, on: $stdout, color: nil, bold: false)

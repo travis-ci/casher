@@ -12,7 +12,7 @@ Usage: casher [options] command [arguments]
     -?, -h, --help                   display help
 
 Available commands:
-    add, checksums, extract, fetch, help, push.
+    add, checksums, extract, fetch, help, list, pack, push.
 
 Available checksum algorithms:
     crc, detect, md5, nop, sha1, sha224, sha256, sha384, sha512, tiger, whirlpool.
