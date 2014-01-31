@@ -6,9 +6,14 @@ require 'shellwords'
 require 'fileutils'
 
 class Casher
-  SEED       = 1386246902
-  COLORS     = %i[black red green yellow blue purple cyan white]
-  ALGORITHMS = {
+  SEED        = 1386246902
+  COLORS      = %i[black red green yellow blue purple cyan white]
+  COMPRESSION = {
+    none:  { extension: "tar", flag: ""  },
+    bzip2: { extension: "tbz", flag: "j" },
+    gzip:  { extension: "tgz", flag: "z" }
+  }
+  ALGORITHMS  = {
     nop:       nil,
     crc:       %w[ cksum      sum        ],
     detect:    %w[ tigerdeep  md5sum md5 ],
@@ -22,7 +27,7 @@ class Casher
     whirlpool: %w[ whirlpooldeep         ]
   }
 
-  attr_accessor :headers, :check_mtime, :algorithm, :debug, :casher_dir, :checksum_command, :force
+  attr_accessor :headers, :check_mtime, :algorithm, :debug, :casher_dir, :checksum_command, :force, :compression
   alias_method :check_mtime?, :check_mtime
   alias_method :debug?, :debug
   alias_method :force?, :force
@@ -48,6 +53,7 @@ class Casher
     parser.on("-g", "--enable-gc", "enable Garbage collector") { GC.enable }
     parser.on("-c", "--casher-dir PATH", "set directory for archives and meta data") { |p| casher.casher_dir = p }
     parser.on("-f", "--force", "override existing files/directories") { casher.force = true }
+    parser.on("-C", "--compress MODE", "compression mode to use") { |c| casher.compression = c.to_sym }
     parser.on("-?", "-h", "--help", "display help") { command = "help" }
     parser.parse! args
     raise "missing command"            unless command ||= args.shift and method = command + append
@@ -66,15 +72,16 @@ class Casher
     @headers     = []
     @check_mtime = true
     @algorithm   = :detect
+    @compression = :bzip2
   end
 
   def fetch!(*urls)
     puts "attempting to download cache archive"
-    if urls.any? { |url| curl(url, o: file('fetch.tbz')) }
+    if urls.any? { |url| curl(url, o: archive("fetch")) }
       puts "found cache"
     else
       puts "could not download cache"
-      rm file('fetch.tbz') if File.exist? file('fetch.tbz')
+      rm archive("fetch") if File.exist? archive('fetch')
     end
   end
 
@@ -192,9 +199,9 @@ class Casher
     end
 
     def extract(*paths)
-      if File.exist? file('fetch.tbz')
+      if File.exist? archive('fetch')
         paths.map! { |p| File.expand_path(p) }.sort!
-        tar(:x, file('fetch.tbz'), *paths) { yield if block_given? }
+        tar(:x, archive('fetch'), *paths) { yield if block_given? }
         true
       else
         info "No cache to read from."
@@ -203,7 +210,8 @@ class Casher
     end
 
     def tar(flag, file, *args, &block)
-      command = "tar -Pj#{flag}f #{_ file} #{_ args}"
+      cflag   = COMPRESSION.fetch(compression)[:flag]
+      command = "tar -P#{cflag}#{flag}f #{_ file} #{_ args}"
       block ||= proc { error "FAILED: #{command}", tar_error }
       block.call unless system "#{command} 2>#{file("tar.err.log")} >#{file("tar.log")}"
     end
@@ -232,6 +240,11 @@ class Casher
 
     def file(name, base = casher_dir)
       File.expand_path(name, base)
+    end
+
+    def archive(name)
+      extension = COMPRESSION.fetch(compression)[:extension]
+      file("#{name}.#{extension}")
     end
 
     def time
