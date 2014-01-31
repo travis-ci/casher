@@ -304,6 +304,11 @@ class Casher
       "\e[#{COLORS.index(color || :white) + 30}#{";1" if bold}m#{string}\e[0m"
     end
 
+    def rm(*args)
+      debug("$ rm #{_ args}")
+      FileUtils.rm(*args)
+    end
+
     COLORS.each do |color|
       define_method(color) do |string, **options|
         format(string, color: color, **options)
