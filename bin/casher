@@ -1,124 +1,319 @@
-#!/usr/bin/env ruby
+#!/usr/bin/env ruby --disable=gems --disable=rubyopt
+GC.disable # yolo
+
+require 'optparse'
 require 'shellwords'
 require 'fileutils'
-require 'yaml'
 
 class Casher
-  include FileUtils
+  SEED        = 1386246902
+  COLORS      = %i[black red green yellow blue purple cyan white]
+  COMPRESSION = {
+    none:  { extension: "tar", flag: ""  },
+    bzip2: { extension: "tbz", flag: "j" },
+    gzip:  { extension: "tgz", flag: "z" }
+  }
+  ALGORITHMS  = {
+    nop:       nil,
+    crc:       %w[ cksum      sum        ],
+    detect:    %w[ tigerdeep  md5sum md5 ],
+    md5:       %w[ md5deep    md5sum md5 ],
+    sha1:      %w[ sha1deep   sha1sum    ],
+    sha224:    %w[ sha224                ],
+    sha256:    %w[ sha256depp sha256sum  ],
+    sha384:    %w[ sha384sum             ],
+    sha512:    %w[ sha384sum             ],
+    tiger:     %w[ tigerdeep             ],
+    whirlpool: %w[ whirlpooldeep         ]
+  }
+
+  attr_accessor :headers, :check_mtime, :algorithm, :debug, :casher_dir, :checksum_command, :force, :compression
+  alias_method :check_mtime?, :check_mtime
+  alias_method :debug?, :debug
+  alias_method :force?, :force
+
+  def self.find(name)
+    constant = constants.detect { |c| c.name.to_s.downcase == name }
+    const_get(constant || name).new
+  end
+
+  def self.run(*args)
+    command = nil
+    casher  = new
+    parser  = OptionParser.new
+    append  = ?!
+    parser.banner = "Usage: casher [options] command [arguments]"
+    parser.on("-H", "--header VALUE", "add given header to HTTP requests") { |h| casher.headers << h }
+    parser.on("-m", "--check-mtime", "use mtime as indicator if a file changed") { casher.check_mtime = true }
+    parser.on("-M", "--no-check-mtime", "don't use mtime as indicator if a file changed") { casher.check_mtime = false }
+    parser.on("-a", "--algorithm NAME", "checksum algorithm to use for detecting changes") { |a| casher.algorithm = a.to_sym }
+    parser.on("-A", "--checksum-command CMD", "command used for generating checksums") { |c| casher.checksum_command = c }
+    parser.on("-d", "--debug", "print helpful debug output, show stacktraces") { casher.debug = true }
+    parser.on("-i", "--internal", "run internal command") { append = "" }
+    parser.on("-g", "--enable-gc", "enable Garbage collector") { GC.enable }
+    parser.on("-c", "--casher-dir PATH", "set directory for archives and meta data") { |p| casher.casher_dir = p }
+    parser.on("-f", "--force", "override existing files/directories") { casher.force = true }
+    parser.on("-C", "--compress MODE", "compression mode to use") { |c| casher.compression = c.to_sym }
+    parser.on("-?", "-h", "--help", "display help") { command = "help" }
+    parser.parse! args
+    raise "missing command"            unless command ||= args.shift and method = command + append
+    raise "unknown command #{command}" unless casher.respond_to? method or casher.debug?
+    args.unshift(parser.help) if command == "help"
+    result = casher.public_send(method, *args)
+    casher.debug("return value: \e[1m%p\e[0m" % result) if append.empty?
+  rescue => error
+    raise error if casher.debug?
+    warn error.message
+    exit 1
+  end
 
   def initialize
-    @casher_dir = ENV['CASHER_DIR'] || File.expand_path(".casher", ENV["HOME"])
-    @mtime_file = File.expand_path('mtime.yml', @casher_dir)
-    @md5_file   = File.expand_path('md5.yml',   @casher_dir)
-    @fetch_tar  = File.expand_path('fetch.tbz', @casher_dir)
-    @push_tar   = File.expand_path('push.tbz',  @casher_dir)
-    @mtimes     = File.exist?(@mtime_file) ? YAML.load_file(@mtime_file) : {}
-    mkdir_p @casher_dir
+    @casher_dir  = ENV['CASHER_DIR'] || File.expand_path("~/.casher")
+    @headers     = []
+    @check_mtime = true
+    @algorithm   = :detect
+    @compression = :bzip2
   end
 
-  def run(command, *arguments)
-    raise "unknown command" unless %w[fetch add push].include? command
-    send(command, *arguments)
-  end
-
-  def fetch(*urls)
+  def fetch!(*urls)
     puts "attempting to download cache archive"
-    if urls.any? { |url| system "curl --tcp-nodelay %p -o %p -f -s >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar] }
+    if urls.any? { |url| curl(url, o: archive("fetch")) }
       puts "found cache"
-      puts "extracting checksums"
-      tar(:x, @fetch_tar, @md5_file) { puts "checksums not yet calculated, skipping" }
     else
       puts "could not download cache"
-      if File.exist? @fetch_tar
-        puts File.read(@fetch_tar)
-        rm @fetch_tar
+      rm archive("fetch") if File.exist? archive('fetch')
+    end
+  end
+
+  def add!(*paths)
+    extract_paths = File.exist?(file('checksums')) ? paths : [file('checksums'), *paths]
+    extract!(*extract_paths)
+
+    mtimes = sort(paths).map { |p| "#{Time.now.to_f} #{p}\n" }.join
+    store_file("mtimes", mtimes, mode: ?a)
+  end
+
+  def list!
+    mtimes.each do |path, time|
+      say "[#{bold(File.exist?(path) ? green(?+) : red(?x))}] #{bold(rel(path))} (#{time})"
+    end
+  end
+
+  def pack!
+    raise NotImplementedError
+  end
+
+  def push!(url)
+    raise NotImplementedError
+  end
+
+  def mtimes
+    @mtimes ||= begin
+      return debug("mtimes metadata missing") unless raw = load_file("mtimes")
+      entries = raw.scan(/^(\d+(?:\.\d+)?) (.+)$/).map { |i,f| [File.expand_path(f), Time.at(i.to_f)] }
+      Hash[sort(entries)]
+    end
+  end
+
+  def help!(text)
+    puts <<-HELP.gsub(/^      |\n\Z/, '')
+      #{text}
+      Available commands:
+          #{public_methods.sort.map { |m| m.to_s[/(.+)!/, 1] }.compact.join(", ")}.
+
+      Available checksum algorithms:
+          #{ALGORITHMS.keys.sort.join(", ")}.
+
+      If set to detect, it will use tiger, md5 or crc, depending on availability.
+      If set to nop, files will be assumed to have changed.
+    HELP
+  end
+
+  def checksums!(*paths)
+    checksums(*paths).each { |k,v| puts "#{v} #{k}" }
+  end
+
+  def extract!(*paths)
+    puts "Reading from cache: #{paths.map { |p| display_path(p) }.join(", ")}."
+    exists  = force ? [] : paths.select { |p| File.exist?(p) }
+    missing = paths - exists
+    if extract(*missing) { debug(*tar_error.scan(/^tar: (.*:.*)$/i).flatten) }
+      paths.each do |path|
+        case path
+        when *exists  then flag, message = yellow(?-), "already exists"
+        when *missing then flag, message = File.exist?(path) ? [green(?+), "found in cache"] : [red(?x), "not yet in cache"]
+        else               flag, message = yellow(??), "not sure what happened"
+        end
+
+        say "[#{bold(flag)}] #{display_path(path)}: #{message}"
       end
     end
   end
 
-  def add(*paths)
-    paths.each do |path|
-      path = File.expand_path(path)
-      puts "adding #{path} to cache"
-      mkdir_p path
-      tar(:x, @fetch_tar, path) { puts "#{path} is not yet cached" }
-      @mtimes[path] = Time.now.to_i
+  def checksums(*paths)
+    return {} if paths.empty?
+    return dummy_checksums(*paths) unless checksum_command
+    command = checksum_command.end_with?('deep') ? "#{checksum_command} -r #{_ paths}" : "find #{_ paths} -type f | xargs #{checksum_command}"
+    output  = `#{command} 2>/dev/null`
+    error "Command %p failed with exit status %i" % [command, $?.exitstatus] unless $?.success?
+    map = output.each_line.map do |line|
+      file, hash = line =~ /^MD5 \((.*)\) = (\S+)$/ ? [$1, $2] : line.chomp.split(" ", 2).reverse
+      [File.expand_path(file), hash]
     end
-    File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
+    Hash[map]
   end
 
-  def push(url)
-    if changed?
-      puts "changes detected, packing new archive"
-      store_md5
-      tar(:c, @push_tar, @md5_file, *@mtimes.keys)
-      puts "uploading archive"
-      unless system "curl -T %p %p -s -S  >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
-        puts "failed to upload cache", File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")
-      end
-    else
-      puts "nothing changed, not updating cache"
-    end
+  def curl(url, options = {})
+    args = ["curl", "--tcp-nodelay -fsS",
+      *options.map { |k,v| "-#{k} #{_ v}" }, *headers.map { |h| "-H #{_ h}" },
+      url, ">#{file("curl.log")}", "2>#{file("curl.err.log")}"]
+    system args.compact.join(" ")
   end
 
-  def changed?
-    return true unless File.exist? @fetch_tar
-    each_file do |file, mtime|
-      next if unchanged? file, mtime
-      puts "#{file} was modified"
-      return true
-    end
-    return false
+  def debug(*lines)
+    say(*lines, on: $stderr, color: :purple) { |l| "* #{l}"} if debug?
   end
 
-  def md5sums
-    @md5sums ||= File.exist?(@md5_file) ? YAML.load_file(@md5_file) : {}
-  end
+  private
 
-  def md5(file)
-    sum = `md5sum #{Shellwords.escape(file)}`.split(" ", 2).first
-    sum.to_s.empty? ? Time.now.to_i : sum
-  end
-
-  def each_file
-    @mtimes.each do |path, mtime|
-      Dir.glob("#{path}/**/*") do |file|
-        yield file, mtime unless File.directory?(file)
+    def checksum_command
+      @checksum_command ||= if commands = ALGORITHMS.fetch(algorithm) { raise "unknown algorithm %s" % algorithm }
+        commands.detect { |c| system "which #{c} >/dev/null" } or raise "#{algorithm} not available"
       end
     end
-  end
 
-  def unchanged?(file, mtime)
-    return true if unchanged_mtime?(file, mtime)
-    md5sums[file] and md5sums[file] == md5(file)
-  end
+    def display_path(path, type = "directory")
+      type = "metadata" if path.start_with? casher_dir
+      path = File.basename(path) if type == "metadata"
+      "#{bold("%p")} %s" % [rel(path), type]
+    end
 
-  def unchanged_mtime?(file, mtime)
-    File.mtime(file).to_i <= mtime
-  end
+    def dummy_checksums(*paths)
+      checksum = ((Time.now-SEED).to_f*(10**10)).to_i.to_s(32)
+      Hash[paths.each_with_object(checksum).to_a]
+    end
 
-  def store_md5
-    $stdout.print "calculating checksums "
-    $stdout.flush
-    new_md5sums = {}
-    each_file do |file, mtime|
-      if unchanged_mtime?(file, mtime) && md5sums.include?(file)
-        new_md5sums[file] = md5sums[file]
+    def sort(paths)
+      paths.sort_by! { |f,*| File.expand_path(f) }
+      paths
+    end
+
+    def extract(*paths)
+      if File.exist? archive('fetch')
+        paths.map! { |p| File.expand_path(p) }.sort!
+        tar(:x, archive('fetch'), *paths) { yield if block_given? }
+        true
       else
-        $stdout.print '.'
-        $stdout.flush
-        new_md5sums[file] = md5(file)
+        info "No cache to read from."
+        false
       end
     end
-    $stdout.puts
-    File.open(@md5_file, 'w') { |f| f << new_md5sums.to_yaml }
-  end
 
-  def tar(flag, file, *args, &block)
-    command = "tar -Pj#{flag}f #{Shellwords.escape(file)} #{Shellwords.join(args)}"
-    block ||= proc { puts "FAILED: #{command}", File.read("#{@casher_dir}/tar.err.log"), File.read("#{@casher_dir}/tar.log") }
-    block.call unless system "#{command} 2>#{@casher_dir}/tar.err.log >#{@casher_dir}/tar.log"
-  end
+    def tar(flag, file, *args, &block)
+      cflag   = COMPRESSION.fetch(compression)[:flag]
+      command = "tar -P#{cflag}#{flag}f #{_ file} #{_ args}"
+      block ||= proc { error "FAILED: #{command}", tar_error }
+      block.call unless system "#{command} 2>#{file("tar.err.log")} >#{file("tar.log")}"
+    end
+
+    def tar_error
+      load_file("tar.err.log")
+    end
+
+    def load_object(name, default = nil)
+      content = load_file("#{name}.dump")
+      content ? Marshal.load(content) : default
+    end
+
+    def store_object(name, content)
+      store_file("#{name}.dump", Marshal.dump(content))
+    end
+
+    def load_file(name)
+      path = file(name)
+      File.read(path) if File.readable? path
+    end
+
+    def store_file(name, content, *args)
+      File.write(file(name), content, *args)
+    end
+
+    def file(name, base = casher_dir)
+      File.expand_path(name, base)
+    end
+
+    def archive(name)
+      extension = COMPRESSION.fetch(compression)[:extension]
+      file("#{name}.#{extension}")
+    end
+
+    def time
+      return yield unless debug?
+      last_pid = $?.pid if $?
+      start    = Time.now
+      result   = yield
+      duration = Time.now - start
+      debug "  exit status: #{$?.exitstatus}" if $? and $?.pid != last_pid
+      debug "  took %.3f seconds" % duration
+      result
+    end
+
+    def system(input)
+      debug("$ #{input}")
+      time { super }
+    end
+
+    def `(input)
+      debug("$ #{input}")
+      time { super }
+    end
+
+    def _(input)
+      Array === input ? Shellwords.join(input) : Shellwords.escape(input)
+    end
+
+    def info(*lines)
+      say(*lines, on: $stderr, color: :yellow)
+    end
+
+    def error(*messages)
+      messages.map! { |m| m.respond_to?(:message) ? m.message : m.to_s }
+      warn(messages)
+      exit 1
+    end
+
+    def warn(*lines)
+      say(*lines, on: $stderr, color: :red, bold: true)
+    end
+
+    def say(*lines, on: $stdout, color: nil, bold: false, &block)
+      lines.map! { |l| format(block ? block[l] : l, color: color, bold: bold, on: on) }
+      on.puts(*lines)
+    end
+
+    def bold(string, **options)
+      format(string, bold: true, **options)
+    end
+
+    def rel(path)
+      _(path.gsub("#{Dir.pwd}/", "")).gsub(Dir.home, '~')
+    end
+
+    def format(string, on: $stdout, color: nil, bold: false)
+      return string unless color || bold and on.tty?
+      "\e[#{COLORS.index(color || :white) + 30}#{";1" if bold}m#{string}\e[0m"
+    end
+
+    def rm(*args)
+      debug("$ rm #{_ args}")
+      FileUtils.rm(*args)
+    end
+
+    COLORS.each do |color|
+      define_method(color) do |string, **options|
+        format(string, color: color, **options)
+      end
+    end
+
+  run(*ARGV)
 end
-
-Casher.new.run(*ARGV) if $0 == __FILE__
