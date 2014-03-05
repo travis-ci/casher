@@ -22,7 +22,7 @@ class Casher
 
   def fetch(*urls)
     puts "attempting to download cache archive"
-    if urls.any? { |url| system "curl --tcp-nodelay %p -o %p -f -s >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar] }
+    if urls.any? { |url| system "curl --tcp-nodelay %p -o %p -f -s --retry 3 >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar] }
       puts "found cache"
     else
       puts "could not download cache"
