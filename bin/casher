@@ -27,7 +27,6 @@ class Casher
     else
       puts "could not download cache"
       if File.exist? @fetch_tar
-        puts File.read(@fetch_tar)
         rm @fetch_tar
       end
     end
