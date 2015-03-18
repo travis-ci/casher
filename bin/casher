@@ -14,7 +14,6 @@ class Casher
        time_redirect:  %{time_redirect} s
   time_starttransfer:  %{time_starttransfer} s
       speed_download:  %{speed_download} bytes/s
-       url_effective:  %{url_effective}
                      ----------
           time_total:  %{time_total} s
   EOF
