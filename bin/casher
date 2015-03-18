@@ -6,6 +6,19 @@ require 'yaml'
 class Casher
   include FileUtils
 
+  CURL_FORMAT = <<-EOF
+     time_namelookup:  %{time_namelookup} s
+        time_connect:  %{time_connect} s
+     time_appconnect:  %{time_appconnect} s
+    time_pretransfer:  %{time_pretransfer} s
+       time_redirect:  %{time_redirect} s
+  time_starttransfer:  %{time_starttransfer} s
+      speed_download:  %{speed_download} bytes/s
+       url_effective:  %{url_effective}
+                     ----------
+          time_total:  %{time_total} s
+  EOF
+
   def initialize
     @casher_dir = ENV['CASHER_DIR'] || File.expand_path(".casher", ENV["HOME"])
     @mtime_file = File.expand_path('mtime.yml', @casher_dir)
@@ -22,7 +35,7 @@ class Casher
 
   def fetch(*urls)
     puts "attempting to download cache archive"
-    if urls.any? { |url| system "curl --tcp-nodelay %p -o %p -f -s --retry 3 >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar] }
+    if urls.any? { |url| system "curl --tcp-nodelay -w '#{CURL_FORMAT}' %p -o %p -f -s --retry 3 >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar] }
       puts "found cache"
     else
       puts "could not download cache"
