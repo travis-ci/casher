@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+require 'timeout'
 require 'shellwords'
 require 'fileutils'
 require 'yaml'
@@ -24,12 +25,17 @@ class Casher
     @fetch_tar  = File.expand_path('fetch.tbz', @casher_dir)
     @push_tar   = File.expand_path('push.tbz', @casher_dir)
     @mtimes     = File.exist?(@mtime_file) ? YAML.load_file(@mtime_file) : {}
+    @timeout    = Integer(ENV['CASHER_TIME_OUT'] || 3*60)
     mkdir_p @casher_dir
   end
 
   def run(command, *arguments)
     raise "unknown command" unless %w[fetch add push].include? command
-    send(command, *arguments)
+    Timeout.timeout(@timeout) { send(command, *arguments) }
+  rescue TimeoutError
+    line  = "casher #{command}"
+    list += Shellwords.join(arguments) if command == "add"
+    $stderr.puts "running `#{line}` took longer than #{@timeout} seconds and has been aborted"
   end
 
   def fetch(*urls)
