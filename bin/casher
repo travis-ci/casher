@@ -34,7 +34,7 @@ class Casher
     Timeout.timeout(@timeout) { send(command, *arguments) }
   rescue TimeoutError
     line  = "casher #{command}"
-    list += Shellwords.join(arguments) if command == "add"
+    line += Shellwords.join(arguments) if command == "add"
     $stderr.puts "running `#{line}` took longer than #{@timeout} seconds and has been aborted"
   end
 
