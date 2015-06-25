@@ -7,18 +7,18 @@ describe Casher do
 
   describe '#run' do
     it 'calls "curl" to download .tbz archive' do
-      expect(subject).to receive(:system).with(/curl\b.*#{tbz_url}\b/m).and_return(true)
+      expect(subject).to receive(:system).with(/curl\b.*#{tgz_url}\b/m).and_return(true)
       subject.run('fetch', tbz_url)
     end
   end
 
   context 'when .gz archive is not available' do
     before :each do
-      expect(subject).to receive(:system).with(/curl\b.*#{tbz_url}\b/m).and_return(false)
+      expect(subject).to receive(:system).with(/curl\b.*#{tgz_url}\b/m).and_return(false)
     end
 
     it 'falls back to .bz2' do
-      expect(subject).to receive(:system).with(/curl\b.*#{tgz_url}\b/m)
+      expect(subject).to receive(:system).with(/curl\b.*#{tbz_url}\b/m)
       subject.run('fetch', tbz_url)
     end
   end

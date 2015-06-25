@@ -95,7 +95,7 @@ class Casher
 
   private
   def download_from(urls)
-    (urls + urls.map {|url| url.gsub(/\.tbz$/, ".tgz")}).uniq
+    (urls.map {|url| url.gsub(/\.tbz$/, ".tgz")} + urls).uniq
   end
 end
 
