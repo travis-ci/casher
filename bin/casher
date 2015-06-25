@@ -40,7 +40,7 @@ class Casher
 
   def fetch(*urls)
     puts "attempting to download cache archive"
-    if download_from(urls).tap{|x| puts x}.any? { |url| @fetch_tar = File.expand_path('fetch.tgz', @casher_dir) if url.end_with?('.tgz'); puts "fetching #{%r(([^/]+?/[^/]+?)(\?.*)?$).match(url)[1]}"; system "curl -f --tcp-nodelay -w '#{CURL_FORMAT}' %p -o %p -f -s --retry 3 >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar] }
+    if download_from(urls).any? { |url| @fetch_tar = File.expand_path('fetch.tgz', @casher_dir) if url.end_with?('.tgz'); puts "fetching #{%r(([^/]+?/[^/]+?)(\?.*)?$).match(url)[1]}"; system "curl --tcp-nodelay -w '#{CURL_FORMAT}' %p -o %p -f -s --retry 3 >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar] }
       puts "found cache"
     else
       puts "could not download cache"
@@ -66,7 +66,7 @@ class Casher
       puts "changes detected, packing new archive"
       tar(:c, @push_tar, *@mtimes.keys)
       puts "uploading archive"
-      unless system "curl -f -T %p %p -s -S  >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
+      unless system "curl -T %p %p -s -S  >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
         puts "failed to upload cache", File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")
       end
     else
