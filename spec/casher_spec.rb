@@ -6,7 +6,7 @@ describe Casher do
   subject { described_class.new() }
 
   describe '#run' do
-    it 'calls "curl" to download .tbz archive' do
+    it 'calls "curl" to download .tgz archive' do
       expect(subject).to receive(:system).with(/curl\b.*#{tgz_url}\b/m).and_return(true)
       subject.run('fetch', tbz_url)
     end
