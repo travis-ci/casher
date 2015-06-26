@@ -88,7 +88,8 @@ class Casher
   end
 
   def tar(flag, file, *args, &block)
-    command = "tar -Pj#{flag}f #{Shellwords.escape(file)} #{Shellwords.join(args)}"
+    compression_flag = file.end_with?('.tbz') ? 'j' : 'z'
+    command = "tar -P#{compression_flag}#{flag}f #{Shellwords.escape(file)} #{Shellwords.join(args)}"
     block ||= proc { puts "FAILED: #{command}", File.read("#{@casher_dir}/tar.err.log"), File.read("#{@casher_dir}/tar.log") }
     block.call unless system "#{command} 2>#{@casher_dir}/tar.err.log >#{@casher_dir}/tar.log"
   end
