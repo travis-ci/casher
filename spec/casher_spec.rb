@@ -6,20 +6,21 @@ describe Casher do
   subject { described_class.new() }
 
   describe '#run' do
-    it 'calls "curl" to download .tbz archive' do
-      expect(subject).to receive(:system).with(/curl\b.*#{tgz_url.gsub('?','\?')}/m).and_return(true)
-      subject.run('fetch', tbz_url)
+    it 'calls "curl" to download archives' do
+      expect(subject).to     receive(:system).with(/curl\b.*#{tgz_url.gsub('?','\?')}/m).and_return(true)
+      expect(subject).not_to receive(:system).with(/curl\b.*#{tbz_url.gsub('?','\?')}/m)
+      subject.run('fetch', tgz_url, tbz_url)
     end
   end
 
-  context 'when .gz archive is not available' do
+  context 'when the first archive is not available' do
     before :each do
       expect(subject).to receive(:system).with(/curl\b.*#{tgz_url.gsub('?','\?')}/m).and_return(false)
     end
 
-    it 'falls back to .bz2' do
+    it 'falls back to the next archive' do
       expect(subject).to receive(:system).with(/curl\b.*#{tbz_url.gsub('?','\?')}/m)
-      subject.run('fetch', tbz_url)
+      subject.run('fetch', tgz_url, tbz_url)
     end
   end
 end
