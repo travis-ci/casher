@@ -3,6 +3,7 @@ require 'timeout'
 require 'shellwords'
 require 'fileutils'
 require 'yaml'
+require 'uri'
 
 class Casher
   include FileUtils
@@ -40,9 +41,19 @@ class Casher
 
   def fetch(*urls)
     puts "attempting to download cache archive"
-    if urls.any? { |url| puts "fetching #{%r(([^/]+?/[^/]+?)(\?.*)?$).match(url)[1]}"; system "curl --tcp-nodelay -w '#{CURL_FORMAT}' %p -o %p -f -s --retry 3 >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar] }
-      puts "found cache"
-    else
+    archive_found = false
+    urls.each do |url|
+      puts "fetching #{%r(([^/]+?/[^/]+?)(\?.*)?$).match(url)[1]}"
+
+      @fetch_tar  = File.expand_path('fetch.tgz', @casher_dir) if path_ext(url) == '.tgz'
+
+      if system "curl --tcp-nodelay -w '#{CURL_FORMAT}' %p -o %p -f -s --retry 3 >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar]
+        puts "found cache"
+        archive_found = true
+        break
+      end
+    end
+    unless archive_found
       puts "could not download cache"
       if File.exist? @fetch_tar
         rm @fetch_tar
@@ -64,6 +75,9 @@ class Casher
   def push(url)
     if changed?
       puts "changes detected, packing new archive"
+
+      @push_tar  = File.expand_path('push.tgz', @casher_dir) if path_ext(url) == '.tgz'
+
       tar(:c, @push_tar, *@mtimes.keys)
       puts "uploading archive"
       unless system "curl -T %p %p -s -S  >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
@@ -88,9 +102,16 @@ class Casher
   end
 
   def tar(flag, file, *args, &block)
-    command = "tar -Pj#{flag}f #{Shellwords.escape(file)} #{Shellwords.join(args)}"
+    compression_flag = file.end_with?('.tbz') ? 'j' : 'z'
+
+    command = "tar -P#{compression_flag}#{flag}f #{Shellwords.escape(file)} #{Shellwords.join(args)}"
     block ||= proc { puts "FAILED: #{command}", File.read("#{@casher_dir}/tar.err.log"), File.read("#{@casher_dir}/tar.log") }
     block.call unless system "#{command} 2>#{@casher_dir}/tar.err.log >#{@casher_dir}/tar.log"
+  end
+
+  def path_ext(url)
+    path = URI.split(url)[5]
+    path.split('.').last
   end
 end
 
