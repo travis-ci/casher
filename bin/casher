@@ -24,7 +24,7 @@ class Casher
     @casher_dir = ENV['CASHER_DIR'] || File.expand_path(".casher", ENV["HOME"])
     @mtime_file = File.expand_path('mtime.yml', @casher_dir)
     @fetch_tar  = File.expand_path('fetch.tbz', @casher_dir)
-    @push_tar   = File.expand_path('push.tgz', @casher_dir)
+    @push_tar   = File.expand_path('push.tbz', @casher_dir)
     @mtimes     = File.exist?(@mtime_file) ? YAML.load_file(@mtime_file) : {}
     @timeout    = Integer(ENV['CASHER_TIME_OUT'] || 3*60)
     mkdir_p @casher_dir
@@ -75,6 +75,9 @@ class Casher
   def push(url)
     if changed?
       puts "changes detected, packing new archive"
+
+      @push_tar  = File.expand_path('push.tgz', @casher_dir) if path_ext(url) == '.tgz'
+
       tar(:c, @push_tar, *@mtimes.keys)
       puts "uploading archive"
       unless system "curl -T %p %p -s -S  >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
