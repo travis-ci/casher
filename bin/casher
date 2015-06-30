@@ -45,7 +45,7 @@ class Casher
     urls.each do |url|
       puts "fetching #{%r(([^/]+?/[^/]+?)(\?.*)?$).match(url)[1]}"
 
-      @fetch_tar  = File.expand_path('fetch.tgz', @casher_dir) if path_ext(url) == '.tgz'
+      @fetch_tar  = File.expand_path('fetch.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
       if system "curl --tcp-nodelay -w '#{CURL_FORMAT}' %p -o %p -f -s --retry 3 >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar]
         puts "found cache"
@@ -76,7 +76,7 @@ class Casher
     if changed?
       puts "changes detected, packing new archive"
 
-      @push_tar  = File.expand_path('push.tgz', @casher_dir) if path_ext(url) == '.tgz'
+      @push_tar  = File.expand_path('push.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
       tar(:c, @push_tar, *@mtimes.keys)
       puts "uploading archive"
