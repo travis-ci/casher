@@ -70,7 +70,8 @@ class Casher
       path = File.expand_path(path)
       puts "adding #{path} to cache"
       mkdir_p path
-      tar(:x, @fetch_tar, path) { puts "#{path} is not yet cached" }
+
+      tar(:x, fetched_archive, path) { puts "#{path} is not yet cached" }
       @mtimes[path] = Time.now.to_i
     end
 
@@ -128,6 +129,12 @@ class Casher
   def path_ext(url)
     path = URI.split(url)[5]
     path.split('.').last
+  end
+
+  def fetched_archive
+    [ File.expand_path('fetch.tbz', @casher_dir), File.expand_path('fetch.tgz', @casher_dir) ].find do |f|
+      File.exist? f
+    end
   end
 end
 
