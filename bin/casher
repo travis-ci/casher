@@ -71,7 +71,10 @@ class Casher
       puts "adding #{path} to cache"
       mkdir_p path
 
-      tar(:x, fetched_archive, path) { puts "#{path} is not yet cached" }
+      if fetched_archive
+        tar(:x, fetched_archive, path) { puts "#{path} is not yet cached" }
+      end
+
       @mtimes[path] = Time.now.to_i
     end
 
