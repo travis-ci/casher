@@ -67,7 +67,10 @@ class Casher
       puts "adding #{path} to cache"
       mkdir_p path
 
-      tar(:x, fetched_archive, path) { puts "#{path} is not yet cached" }
+      if fetched_archive
+        tar(:x, fetched_archive, path) { puts "#{path} is not yet cached" }
+      end
+
       @mtimes[path] = Time.now.to_i
     end
     File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
@@ -116,7 +119,7 @@ class Casher
   end
 
   def fetched_archive
-    [ File.expand_path('fetch.tbz', @casher_dir), File.expand_path('fetch.tgz', @casher_dir) ].find(@fetch_tar) do |f|
+    [ File.expand_path('fetch.tbz', @casher_dir), File.expand_path('fetch.tgz', @casher_dir) ].find do |f|
       File.exist? f
     end
   end
