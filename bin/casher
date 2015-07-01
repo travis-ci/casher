@@ -62,6 +62,8 @@ class Casher
   end
 
   def add(*paths)
+    @fetch_tar  = File.expand_path('fetch.tgz', @casher_dir) if path_ext(url) == 'tgz'
+
     paths.each do |path|
       path = File.expand_path(path)
       puts "adding #{path} to cache"
