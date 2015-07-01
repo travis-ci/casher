@@ -23,10 +23,14 @@ class Casher
   def initialize
     @casher_dir = ENV['CASHER_DIR'] || File.expand_path(".casher", ENV["HOME"])
     @mtime_file = File.expand_path('mtime.yml', @casher_dir)
+    @checksum_file = File.expand_path('md5sums', @casher_dir)
     @fetch_tar  = File.expand_path('fetch.tbz', @casher_dir)
     @push_tar   = File.expand_path('push.tbz', @casher_dir)
+    @paths_file = File.expand_path('paths', @casher_dir)
     @mtimes     = File.exist?(@mtime_file) ? YAML.load_file(@mtime_file) : {}
     @timeout    = Integer(ENV['CASHER_TIME_OUT'] || 3*60)
+
+    @md5deep_available = system("which md5deep >/dev/null 2>&1")
     mkdir_p @casher_dir
   end
 
@@ -69,7 +73,13 @@ class Casher
       tar(:x, @fetch_tar, path) { puts "#{path} is not yet cached" }
       @mtimes[path] = Time.now.to_i
     end
-    File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
+
+    if @md5deep_available
+      File.write(@paths_file, paths.join(' '))
+      system "md5deep -r #{paths.join(' ')} > #{@checksum_file}"
+    else
+      File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
+    end
   end
 
   def push(url)
@@ -91,6 +101,12 @@ class Casher
   def changed?
     return false if @mtimes.empty?
     return true unless File.exist? @fetch_tar
+
+    if @md5deep_available
+      paths = File.read(@paths_file)
+      return ! system("md5deep -x #{@checksum_file} -r #{paths} > /dev/null")
+    end
+
     @mtimes.any? do |path, mtime|
       Dir.glob("#{path}/**/*").any? do |file|
         next if File.mtime(file).to_i <= mtime
