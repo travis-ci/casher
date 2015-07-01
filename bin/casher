@@ -116,7 +116,7 @@ class Casher
   end
 
   def fetched_archive
-    [ File.expand_path('fetch.tbz', @casher_dir), File.expand_path('fetch.tgz', @casher_dir) ].find do |f|
+    [ File.expand_path('fetch.tbz', @casher_dir), File.expand_path('fetch.tgz', @casher_dir) ].find(@fetch_tar) do |f|
       File.exist? f
     end
   end
