@@ -78,7 +78,7 @@ class Casher
     end
 
     if md5deep_available?
-      File.open(@paths_file, 'w') { |f| f << paths.join("\n") }
+      File.open(@paths_file, 'w') { |f| f << paths.map { |p| File.expand_path p }.join("\n") }
       system "md5deep -r #{paths.join(' ')} > #{@checksum_file}"
     else
       File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
@@ -106,7 +106,7 @@ class Casher
     return true unless fetched_archive
 
     if md5deep_available?
-      paths = File.read(@paths_file)
+      paths = File.read(@paths_file).gsub("\n", ' ')
       return File.size(@checksum_file) == 0 || ! system("md5deep -x #{@checksum_file} -r #{paths} > /dev/null")
     end
 
