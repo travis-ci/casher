@@ -78,7 +78,7 @@ class Casher
     end
 
     if md5deep_available?
-      File.write(@paths_file, paths.join(' '))
+      File.write(@paths_file, paths.join("\n"))
       system "md5deep -r #{paths.join(' ')} > #{@checksum_file}"
     end
 
