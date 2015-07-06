@@ -78,7 +78,7 @@ class Casher
     end
 
     if md5deep_available?
-      File.write(@paths_file, paths.join("\n"))
+      File.open(@paths_file, 'w') { |f| f << paths.join("\n") }
       system "md5deep -r #{paths.join(' ')} > #{@checksum_file}"
     else
       File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
