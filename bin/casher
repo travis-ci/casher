@@ -81,9 +81,9 @@ class Casher
     if @md5deep_available
       File.write(@paths_file, paths.join(' '))
       system "md5deep -r #{paths.join(' ')} > #{@checksum_file}"
-    else
-      File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
     end
+
+    File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
   end
 
   def push(url)
