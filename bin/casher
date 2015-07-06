@@ -103,7 +103,6 @@ class Casher
 
   def changed?
     return true unless fetched_archive
-    return false if @mtimes.empty? && ! @md5deep_available
 
     if md5deep_available?
       paths = File.read(@paths_file)
