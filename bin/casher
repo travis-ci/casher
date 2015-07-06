@@ -80,9 +80,10 @@ class Casher
     if md5deep_available?
       File.write(@paths_file, paths.join("\n"))
       system "md5deep -r #{paths.join(' ')} > #{@checksum_file}"
+    else
+      File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
     end
 
-    File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
   end
 
   def push(url)
@@ -91,7 +92,7 @@ class Casher
 
       @push_tar  = File.expand_path('push.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
-      tar(:c, @push_tar, *@mtimes.keys)
+      tar(:c, @push_tar, *cached_directories)
       puts "uploading archive"
       unless system "curl -T %p %p -s -S  >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
         puts "failed to upload cache", File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")
@@ -140,6 +141,14 @@ class Casher
 
   def md5deep_available?
     @md5deep_available ||= system("which md5deep >/dev/null 2>&1")
+  end
+
+  def cached_directories
+    if File.exist?(@paths_file)
+      File.read(@paths_file).split("\n")
+    else
+      @mtimes.keys
+    end
   end
 end
 
