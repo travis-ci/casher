@@ -103,12 +103,12 @@ class Casher
   end
 
   def changed?
-    return false if @mtimes.empty?
+    return false if @mtimes.empty? && ! @md5deep_available
     return true unless File.exist? @fetch_tar
 
     if @md5deep_available
       paths = File.read(@paths_file)
-      return ! system("md5deep -x #{@checksum_file} -r #{paths} > /dev/null")
+      return File.size(@checksum_file) == 0 || ! system("md5deep -x #{@checksum_file} -r #{paths} > /dev/null")
     end
 
     @mtimes.any? do |path, mtime|
