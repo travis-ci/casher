@@ -65,7 +65,8 @@ class Casher
   end
 
   def add(*paths)
-    paths.each do |path|
+    expanded_paths = paths.map { |p| File.expand_path(p) }
+    expanded_paths.each do |path|
       path = File.expand_path(path)
       puts "adding #{path} to cache"
       mkdir_p path
@@ -78,8 +79,8 @@ class Casher
     end
 
     if md5deep_available?
-      File.open(@paths_file, 'w') { |f| f << @mtimes.keys.join("\n") }
-      system "md5deep -r #{@mtimes.keys.join(' ')} > #{@checksum_file}"
+      File.open(@paths_file, 'a') { |f| f << expanded_paths.join("\n") << "\n" }
+      system "md5deep -r #{expanded_paths.join(' ')} >> #{@checksum_file}"
     else
       File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
     end
@@ -152,7 +153,7 @@ class Casher
 
   def cached_directories
     if File.exist?(@paths_file)
-      File.read(@paths_file).split("\n")
+      File.read(@paths_file).split("\n").compact
     else
       @mtimes.keys
     end
