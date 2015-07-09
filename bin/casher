@@ -108,14 +108,7 @@ class Casher
 
     if md5deep_available?
       paths = File.read(@paths_file).gsub("\n", ' ')
-      return true if File.size(@checksum_file) == 0
-      md5deep_check_output = `md5deep -x #{@checksum_file} -r #{paths}`
-      if md5deep_check_output.length > 0
-        puts "change detected\n#{md5deep_check_output}"
-        return true
-      else
-        return false
-      end
+      return File.size(@checksum_file) == 0 || ! system("md5deep -x #{@checksum_file} -r #{paths} > /dev/null")
     end
 
     @mtimes.any? do |path, mtime|
