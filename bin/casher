@@ -75,7 +75,9 @@ class Casher
       expanded_paths.map { |p| puts "adding #{p} to cache"; mkdir_p p }
 
       stdin, stdout, stderr, wait_thr = Open3.popen3("tar -P#{compression_flag}xf #{Shellwords.escape(fetched_archive)} #{Shellwords.join(expanded_paths)}")
-      while wait_thr.status { sleep 1 }
+      while wait_thr.status do
+        sleep 1
+      end
 
       errors = stderr.read
       File.write(File.join(ENV['CASHER_DIR'], 'tar.log'), stdout.read)
