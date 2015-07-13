@@ -4,6 +4,7 @@ require 'shellwords'
 require 'fileutils'
 require 'yaml'
 require 'uri'
+require 'open3'
 
 class Casher
   include FileUtils
@@ -19,6 +20,8 @@ class Casher
                      ----------
           time_total:  %%{time_total} s
   EOF
+
+  TAR_DIR_NOT_FOUND_REGEXP = /(\w+): Not found in archive/
 
   def initialize
     @casher_dir = ENV['CASHER_DIR'] || File.expand_path(".casher", ENV["HOME"])
@@ -65,17 +68,28 @@ class Casher
   end
 
   def add(*paths)
-    expanded_paths = paths.map { |p| File.expand_path(p) }
-    expanded_paths.each do |path|
-      path = File.expand_path(path)
-      puts "adding #{path} to cache"
-      mkdir_p path
+    expanded_paths = paths.tap { |x| puts "received #{x}" }.map { |p| File.expand_path(p) }
 
-      if fetched_archive
-        tar(:x, fetched_archive, path) { puts "#{path} is not yet cached" }
+    if fetched_archive
+      compression_flag = fetched_archive.end_with?('.tbz') ? 'j' : 'z'
+      expanded_paths.map { |p| puts "adding #{p} to cache"; mkdir_p p }
+
+      stdin, stdout, stderr, wait_thr = Open3.popen3("tar -P#{compression_flag}xf #{Shellwords.escape(fetched_archive)} #{Shellwords.join(expanded_paths)}")
+      while wait_thr.status do
+        sleep 1
       end
 
-      @mtimes[path] = Time.now.to_i
+      errors = stderr.read
+      File.write(File.join(ENV['CASHER_DIR'], 'tar.log'), stdout.read)
+      File.write(File.join(ENV['CASHER_DIR'], 'tar.err.log'), errors)
+
+      dirs_not_in_archive = errors.scan(TAR_DIR_NOT_FOUND_REGEXP).flatten.uniq
+
+      dirs_not_in_archive.each do |dir|
+        puts "#{dir} is not yet cached"
+      end
+
+      expanded_paths.map { |p| @mtimes[p] = Time.now.to_i }
     end
 
     if md5deep_available?
