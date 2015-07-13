@@ -68,7 +68,7 @@ class Casher
   end
 
   def add(*paths)
-    expanded_paths = paths.tap { |x| puts "received #{x}" }.map { |p| File.expand_path(p) }
+    expanded_paths = paths.map { |p| File.expand_path(p) }
 
     if fetched_archive
       compression_flag = fetched_archive.end_with?('.tbz') ? 'j' : 'z'
