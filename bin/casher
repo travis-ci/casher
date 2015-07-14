@@ -23,6 +23,8 @@ class Casher
 
   TAR_DIR_NOT_FOUND_REGEXP = /(\w+): Not found in archive/
 
+  MD5DEEP_CHECK_LOG_LIMIT = 1000
+
   def initialize
     @casher_dir = ENV['CASHER_DIR'] || File.expand_path(".casher", ENV["HOME"])
     @mtime_file = File.expand_path('mtime.yml', @casher_dir)
@@ -32,6 +34,7 @@ class Casher
     @paths_file = File.expand_path('paths', @casher_dir)
     @mtimes     = File.exist?(@mtime_file) ? YAML.load_file(@mtime_file) : {}
     @timeout    = Integer(ENV['CASHER_TIME_OUT'] || 3*60)
+    @md5deep_log = File.expand_path('md5deep_check', @casher_dir)
 
     mkdir_p @casher_dir
   end
@@ -121,8 +124,15 @@ class Casher
     return true unless fetched_archive
 
     if md5deep_available?
-      paths = File.read(@paths_file).gsub("\n", ' ')
-      return File.size(@checksum_file) == 0 || ! system("md5deep -x #{@checksum_file} -r #{paths} > /dev/null")
+      paths  = File.read(@paths_file).gsub("\n", ' ')
+      result = File.size(@checksum_file) == 0 || ! system("md5deep -x #{@checksum_file} -r #{paths} > #{@md5deep_log}")
+      if File.size(@md5deep_log) > 0
+        first_bytes = File.read(@md5deep_log, MD5DEEP_CHECK_LOG_LIMIT + 1)
+        puts "change detected:\n#{first_bytes}\n"
+        puts "...\n" if first_bytes.size > MD5DEEP_CHECK_LOG_LIMIT
+      end
+
+      return result
     end
 
     @mtimes.any? do |path, mtime|
