@@ -100,24 +100,26 @@ class Casher
   end
 
   def push(url)
-    if changed?
-      puts "changes detected, packing new archive"
-
-      @push_tar  = File.expand_path('push.tgz', @casher_dir) if path_ext(url) == 'tgz'
-
-      tar(:c, @push_tar, *cached_directories) do
-        @counter += 1
-        puts "." if @counter % 5 == 0
-        sleep 1
-      end
-
-      puts "uploading archive"
-      unless system "curl -T %p %p -s -S  >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
-        puts "failed to upload cache", File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")
-      end
-    else
+    unlss changed?
       puts "nothing changed, not updating cache"
+      return
     end
+
+    puts "changes detected, packing new archive"
+
+    @push_tar  = File.expand_path('push.tgz', @casher_dir) if path_ext(url) == 'tgz'
+
+    tar(:c, @push_tar, *cached_directories) do
+      @counter += 1
+      puts "." if @counter % 5 == 0
+      sleep 1
+    end
+
+    puts "uploading archive"
+    unless system "curl -T %p %p -s -S  >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
+      puts "failed to upload cache", File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")
+    end
+
   end
 
   def changed?
