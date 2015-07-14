@@ -36,6 +36,8 @@ class Casher
     @timeout    = Integer(ENV['CASHER_TIME_OUT'] || 3*60)
     @md5deep_log = File.expand_path('md5deep_check', @casher_dir)
 
+    @counter = 0
+
     mkdir_p @casher_dir
   end
 
@@ -104,8 +106,9 @@ class Casher
       @push_tar  = File.expand_path('push.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
       tar(:c, @push_tar, *cached_directories) do
-        puts "."
-        sleep 5
+        @counter += 1
+        puts "." if @counter % 5 == 0
+        sleep 1
       end
 
       puts "uploading archive"
