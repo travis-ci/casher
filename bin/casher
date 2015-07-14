@@ -28,13 +28,13 @@ class Casher
   def initialize
     @casher_dir = ENV['CASHER_DIR'] || File.expand_path(".casher", ENV["HOME"])
     @mtime_file = File.expand_path('mtime.yml', @casher_dir)
-    @checksum_file = File.expand_path('md5sums', @casher_dir)
+    @checksum_file_before = File.expand_path('md5sums_before', @casher_dir)
+    @checksum_file_after  = File.expand_path('md5sums_after', @casher_dir)
     @fetch_tar  = File.expand_path('fetch.tbz', @casher_dir)
     @push_tar   = File.expand_path('push.tbz', @casher_dir)
     @paths_file = File.expand_path('paths', @casher_dir)
     @mtimes     = File.exist?(@mtime_file) ? YAML.load_file(@mtime_file) : {}
     @timeout    = Integer(ENV['CASHER_TIME_OUT'] || 3*60)
-    @md5deep_log = File.expand_path('md5deep_check', @casher_dir)
 
     @counter = 0
 
@@ -92,7 +92,7 @@ class Casher
 
     if md5deep_available?
       File.open(@paths_file, 'a') { |f| f << expanded_paths.join("\n") << "\n" }
-      system "md5deep -r #{expanded_paths.join(' ')} >> #{@checksum_file}"
+      system "md5deep -r #{expanded_paths.join(' ')} | sort >> #{@checksum_file_before}"
     else
       File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
     end
@@ -125,9 +125,10 @@ class Casher
 
     if md5deep_available?
       paths  = File.read(@paths_file).gsub("\n", ' ')
-      result = File.size(@checksum_file) == 0 || ! system("md5deep -x #{@checksum_file} -r #{paths} > #{@md5deep_log}")
-      if File.size(@md5deep_log) > 0
-        first_bytes = File.read(@md5deep_log, MD5DEEP_CHECK_LOG_LIMIT + 1)
+      diff_file = File.expand_path('checksum_diff', @casher_dir)
+      result = File.size(@checksum_file_before) == 0 || ! system("md5deep -r #{paths} | sort > #{@checksum_file_after}; diff #{@checksum_file_before} #{@checksum_file_after} | awk '/^[<>]/ {print $NF}' > #{diff_file}")
+      if File.size(diff_file) > 0
+        first_bytes = File.read(diff_file, MD5DEEP_CHECK_LOG_LIMIT + 1)
         puts "change detected:\n#{first_bytes}\n"
         puts "...\n" if first_bytes.size > MD5DEEP_CHECK_LOG_LIMIT
       end
