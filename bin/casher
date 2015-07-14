@@ -100,7 +100,7 @@ class Casher
   end
 
   def push(url)
-    unlss changed?
+    unless changed?
       puts "nothing changed, not updating cache"
       return
     end
