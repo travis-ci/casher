@@ -126,7 +126,7 @@ class Casher
     if md5deep_available?
       paths  = File.read(@paths_file).gsub("\n", ' ')
       diff_file = File.expand_path('checksum_diff', @casher_dir)
-      system("md5deep -r #{paths} | sort > #{@checksum_file_after}; diff #{@checksum_file_before} #{@checksum_file_after} | awk '/^[<>]/ {print $NF}' > #{diff_file}")
+      system("md5deep -r #{paths} | sort > #{@checksum_file_after}; diff #{@checksum_file_before} #{@checksum_file_after} | awk '/^[<>]/ {print $NF}' | sort > #{diff_file}")
 
       result = File.size(@checksum_file_before) == 0 || File.size(diff_file) > 0
 
