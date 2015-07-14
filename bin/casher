@@ -75,7 +75,7 @@ class Casher
     expanded_paths.map { |p| puts "adding #{p} to cache"; mkdir_p p }
 
     if fetched_archive
-      output, errors = tar(:x, fetched_archive, expanded_paths) do
+      output, errors = tar(:x, fetched_archive, *expanded_paths) do
         sleep 1
       end
 
@@ -103,7 +103,7 @@ class Casher
 
       @push_tar  = File.expand_path('push.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
-      tar(:c, @push_tar, cached_directories) do
+      tar(:c, @push_tar, *cached_directories) do
         puts "."
         sleep 5
       end
