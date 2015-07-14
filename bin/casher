@@ -28,13 +28,15 @@ class Casher
   def initialize
     @casher_dir = ENV['CASHER_DIR'] || File.expand_path(".casher", ENV["HOME"])
     @mtime_file = File.expand_path('mtime.yml', @casher_dir)
-    @checksum_file = File.expand_path('md5sums', @casher_dir)
+    @checksum_file_before = File.expand_path('md5sums_before', @casher_dir)
+    @checksum_file_after  = File.expand_path('md5sums_after', @casher_dir)
     @fetch_tar  = File.expand_path('fetch.tbz', @casher_dir)
     @push_tar   = File.expand_path('push.tbz', @casher_dir)
     @paths_file = File.expand_path('paths', @casher_dir)
     @mtimes     = File.exist?(@mtime_file) ? YAML.load_file(@mtime_file) : {}
     @timeout    = Integer(ENV['CASHER_TIME_OUT'] || 3*60)
-    @md5deep_log = File.expand_path('md5deep_check', @casher_dir)
+
+    @counter = 0
 
     mkdir_p @casher_dir
   end
@@ -75,16 +77,9 @@ class Casher
     expanded_paths.map { |p| puts "adding #{p} to cache"; mkdir_p p }
 
     if fetched_archive
-      compression_flag = fetched_archive.end_with?('.tbz') ? 'j' : 'z'
-
-      stdin, stdout, stderr, wait_thr = Open3.popen3("tar -P#{compression_flag}xf #{Shellwords.escape(fetched_archive)} #{Shellwords.join(expanded_paths)}")
-      while wait_thr.status do
+      output, errors = tar(:x, fetched_archive, *expanded_paths) do
         sleep 1
       end
-
-      errors = stderr.read
-      File.write(File.join(ENV['CASHER_DIR'], 'tar.log'), stdout.read)
-      File.write(File.join(ENV['CASHER_DIR'], 'tar.err.log'), errors)
 
       dirs_not_in_archive = errors.scan(TAR_DIR_NOT_FOUND_REGEXP).flatten.uniq
 
@@ -97,7 +92,7 @@ class Casher
 
     if md5deep_available?
       File.open(@paths_file, 'a') { |f| f << expanded_paths.join("\n") << "\n" }
-      system "md5deep -r #{expanded_paths.join(' ')} >> #{@checksum_file}"
+      system "md5deep -r #{expanded_paths.join(' ')} | sort >> #{@checksum_file_before}"
     else
       File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
     end
@@ -110,7 +105,12 @@ class Casher
 
       @push_tar  = File.expand_path('push.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
-      tar(:c, @push_tar, *cached_directories)
+      tar(:c, @push_tar, *cached_directories) do
+        @counter += 1
+        puts "." if @counter % 5 == 0
+        sleep 1
+      end
+
       puts "uploading archive"
       unless system "curl -T %p %p -s -S  >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
         puts "failed to upload cache", File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")
@@ -125,9 +125,13 @@ class Casher
 
     if md5deep_available?
       paths  = File.read(@paths_file).gsub("\n", ' ')
-      result = File.size(@checksum_file) == 0 || ! system("md5deep -x #{@checksum_file} -r #{paths} > #{@md5deep_log}")
-      if File.size(@md5deep_log) > 0
-        first_bytes = File.read(@md5deep_log, MD5DEEP_CHECK_LOG_LIMIT + 1)
+      diff_file = File.expand_path('checksum_diff', @casher_dir)
+      system("md5deep -r #{paths} | sort > #{@checksum_file_after}; diff #{@checksum_file_before} #{@checksum_file_after} | awk '/^[<>]/ {print $NF}' | sort > #{diff_file}")
+
+      result = File.size(@checksum_file_before) == 0 || File.size(diff_file) > 0
+
+      if File.size(diff_file) > 0
+        first_bytes = File.read(diff_file, MD5DEEP_CHECK_LOG_LIMIT + 1)
         puts "change detected:\n#{first_bytes}\n"
         puts "...\n" if first_bytes.size > MD5DEEP_CHECK_LOG_LIMIT
       end
@@ -148,9 +152,23 @@ class Casher
   def tar(flag, file, *args, &block)
     compression_flag = file.end_with?('.tbz') ? 'j' : 'z'
 
-    command = "tar -P#{compression_flag}#{flag}f #{Shellwords.escape(file)} #{Shellwords.join(args)}"
-    block ||= proc { puts "FAILED: #{command}", File.read("#{@casher_dir}/tar.err.log"), File.read("#{@casher_dir}/tar.log") }
-    block.call unless system "#{command} 2>#{@casher_dir}/tar.err.log >#{@casher_dir}/tar.log"
+    cmd = "tar -P#{compression_flag}#{flag}f #{Shellwords.escape(file)} #{Shellwords.join(args)}"
+    stdin, stdout, stderr, wait_thr = Open3.popen3(cmd)
+    while wait_thr.status do
+      yield
+    end
+
+    errors = stderr.read
+    output = stdout.read
+    File.write(File.join(@casher_dir, 'tar.log'), output)
+    File.write(File.join(@casher_dir, 'tar.err.log'), errors)
+    status = wait_thr.value
+
+    unless status.success?
+      puts "FAILED: #{cmd}", errors, output
+    end
+
+    [stdout, errors]
   end
 
   def path_ext(url)
