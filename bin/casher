@@ -60,20 +60,32 @@ class Casher
     exit_status = EXIT_NO_CACHE
 
     urls.each do |url|
-      puts "fetching #{URI.split(url)[5]}"
+      path = URI.split(url)[5]
+      puts "fetching #{path}"
 
       @fetch_tar  = File.expand_path('fetch.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
-      system "curl --tcp-nodelay -w '#{CURL_FORMAT}' %p -o %p -f -s --retry 3 >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar]
-      if $?.success?
+      cmd = "curl --tcp-nodelay -w '#{CURL_FORMAT}' %p -o %p -f -s --retry 3 >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar]
+
+      stdin, stdout, stderr, wait_thr = Open3.popen3(cmd)
+      while wait_thr.status do
+        sleep 1
+      end
+
+      errors = stderr.read
+      output = stdout.read
+      status = wait_thr.value
+
+      if status.success?
         puts "found cache"
         archive_found = true
         exit_status = EXIT_SUCCESS
         break
+      elsif errors =~ /\b404\b/
+        exit_status = EXIT_NO_CACHE
       else
-        puts "Status: #{$?.exitstatus}"
-        # exit_status = EXIT_CACHE_FETCH_FAILED
-        # break
+        puts "Fetch failed with: #{errors}"
+        exit_status = EXIT_CACHE_FETCH_FAILED
       end
     end
 
