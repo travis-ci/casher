@@ -134,7 +134,7 @@ class Casher
   def push(url)
     unless changed?
       puts "nothing changed, not updating cache"
-      return
+      return EXIT_SUCCESS
     end
 
     puts "changes detected, packing new archive"
