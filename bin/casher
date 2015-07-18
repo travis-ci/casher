@@ -71,8 +71,10 @@ class Casher
         exit_status = EXIT_SUCCESS
         break
       elsif $?.exitstatus == 22
-        exit_status = EXIT_CACHE_FETCH_FAILED
-        break
+        puts "Downloading #{URI.split(url)[5]}"
+        puts "Status: #{$?exitstatus}"
+        # exit_status = EXIT_CACHE_FETCH_FAILED
+        # break
       end
     end
 
