@@ -60,7 +60,7 @@ class Casher
     exit_status = EXIT_NO_CACHE
 
     urls.each do |url|
-      puts "fetching #{%r(([^/]+?/[^/]+?)(\?.*)?$).match(url)[1]}"
+      puts "fetching #{URI.split(url)[5]}"
 
       @fetch_tar  = File.expand_path('fetch.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
@@ -70,8 +70,7 @@ class Casher
         archive_found = true
         exit_status = EXIT_SUCCESS
         break
-      elsif $?.exitstatus == 22
-        puts "Downloading #{URI.split(url)[5]}"
+      else
         puts "Status: #{$?.exitstatus}"
         # exit_status = EXIT_CACHE_FETCH_FAILED
         # break
