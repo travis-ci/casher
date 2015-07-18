@@ -64,16 +64,18 @@ class Casher
 
       @fetch_tar  = File.expand_path('fetch.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
-      if system "curl --tcp-nodelay -w '#{CURL_FORMAT}' %p -o %p -f -s --retry 3 >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar]
+      system "curl --tcp-nodelay -w '#{CURL_FORMAT}' %p -o %p -f -s --retry 3 >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar]
+      if $?.success?
         puts "found cache"
         archive_found = true
         exit_status = EXIT_SUCCESS
         break
       elsif $?.exitstatus == 22
         exit_status = EXIT_CACHE_FETCH_FAILED
+        break
       end
-
     end
+
     unless archive_found
       puts "could not download cache"
       if File.exist? @fetch_tar
