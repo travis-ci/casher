@@ -61,11 +61,11 @@ class Casher
 
     urls.each do |url|
       path = URI.split(url)[5]
-      puts "fetching #{path}"
+      puts "fetching #{path.split('/').last}"
 
       @fetch_tar  = File.expand_path('fetch.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
-      cmd = "curl --tcp-nodelay -w '#{CURL_FORMAT}' %p -o %p -f -s --retry 3" % [url, @fetch_tar]
+      cmd = "curl --tcp-nodelay -w '#{CURL_FORMAT}' %p -o %p -f -s -S --retry 3" % [url, @fetch_tar]
 
       stdin, stdout, stderr, wait_thr = Open3.popen3(cmd)
       while wait_thr.status do
