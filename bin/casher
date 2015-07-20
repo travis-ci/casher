@@ -166,7 +166,7 @@ class Casher
     File.write(File.join(@casher_dir, 'tar.err.log'), errors)
     status = wait_thr.value
 
-    unless status.success?
+    if !status.success? && flag.to_s != 'x'
       puts "FAILED: #{cmd}", errors, output
     end
 
