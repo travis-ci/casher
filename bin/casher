@@ -85,6 +85,9 @@ class Casher
         sleep 1
       end
 
+      puts "output:\n#{output}"
+      puts "errors:\n#{errors}"
+
       puts "archive extracted\n"
       cmd = "find $HOME/.ivy2/cache/com.jcraft/jsch/"
       puts "about to execute #{cmd}"
@@ -167,7 +170,7 @@ class Casher
   def tar(flag, file, *args, &block)
     compression_flag = file.end_with?('.tbz') ? 'j' : 'z'
 
-    cmd = "tar -P#{compression_flag}#{flag}f #{Shellwords.escape(file)} #{Shellwords.join(args)}"
+    cmd = "tar -vP#{compression_flag}#{flag}f #{Shellwords.escape(file)} #{Shellwords.join(args)}"
     stdin, stdout, stderr, wait_thr = Open3.popen3(cmd)
     while wait_thr.status do
       yield
