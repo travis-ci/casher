@@ -96,7 +96,7 @@ class Casher
       cmd = "md5deep -r #{expanded_paths.join(' ')} | sort >> #{@checksum_file_before}"
       puts "About to execute #{cmd}"
       puts "content of cached dir:"
-      system "find $HOME/.ivy2 | grp com.jcraft/jsch"
+      system "find $HOME/.ivy2 | grep com.jcraft/jsch"
       system "md5deep -r #{expanded_paths.join(' ')} | sort >> #{@checksum_file_before}"
     else
       File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
