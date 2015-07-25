@@ -61,6 +61,7 @@ class Casher
       if system "curl --tcp-nodelay -w '#{CURL_FORMAT}' %p -o %p -f -s --retry 3 >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar]
         puts "found cache"
         archive_found = true
+        system "tar -tzf #{@fetch_tar} | grep com.jcraft/jsch"
         break
       end
     end
