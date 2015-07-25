@@ -64,7 +64,7 @@ class Casher
         puts "found cache"
         archive_found = true
         puts "\nDownloaded archive's contents: "
-        system "tar -tzf #{@fetch_tar} 2>/dev/null | grep com.jcraft/jsch"
+        system "tar -tzf #{@fetch_tar} /home/travis/.ivy2/cache/com.jcraft/jsch"
         break
       end
     end
