@@ -51,6 +51,8 @@ class Casher
   end
 
   def fetch(*urls)
+    puts "before the archive is fetched, what's in $HOME/.ivy2/cach/com.jcraft/jsch/?"
+    system "find $HOME/.ivy2/cach/com.jcraft/jsch/"
     puts "attempting to download cache archive"
     archive_found = false
     urls.each do |url|
