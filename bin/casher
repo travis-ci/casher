@@ -101,11 +101,11 @@ class Casher
 
     if md5deep_available?
       File.open(@paths_file, 'a') { |f| f << expanded_paths.join("\n") << "\n" }
-      cmd = "md5deep -r #{expanded_paths.join(' ')} | sort >> #{@checksum_file_before}"
+      cmd = "md5deep -r #{expanded_paths.join(' ')} | sort -k34 >> #{@checksum_file_before}"
       puts "About to execute #{cmd}"
       puts "content of cached dir:"
       system "find $HOME/.ivy2/cache/com.jcraft/jsch"
-      system "md5deep -r #{expanded_paths.join(' ')} | sort >> #{@checksum_file_before}"
+      system "md5deep -r #{expanded_paths.join(' ')} | sort -k34 >> #{@checksum_file_before}"
     else
       File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
     end
@@ -141,7 +141,7 @@ class Casher
     if md5deep_available?
       paths  = File.read(@paths_file).gsub("\n", ' ')
       diff_file = File.expand_path('checksum_diff', @casher_dir)
-      system("md5deep -r #{paths} | sort > #{@checksum_file_after}; diff -B #{@checksum_file_before} #{@checksum_file_after} | awk '/^[<>]/ {print $NF}' | sort > #{diff_file}")
+      system("md5deep -r #{paths} | sort -k34 > #{@checksum_file_after}; diff -B #{@checksum_file_before} #{@checksum_file_after} | awk '/^[<>]/ {print $NF}' | sort > #{diff_file}")
 
       result = File.size(@checksum_file_before) == 0 || File.size(diff_file) > 0
 
