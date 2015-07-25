@@ -82,6 +82,7 @@ class Casher
 
     if fetched_archive
       output, errors = tar(:x, fetched_archive, *expanded_paths) do
+        puts '.'
         sleep 1
       end
 
