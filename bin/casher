@@ -85,9 +85,6 @@ class Casher
         sleep 1
       end
 
-      puts "output:\n#{output}"
-      puts "errors:\n#{errors}"
-
       puts "archive extracted\n"
       cmd = "find $HOME/.ivy2/cache/com.jcraft/jsch/"
       puts "about to execute #{cmd}"
@@ -104,11 +101,11 @@ class Casher
 
     if md5deep_available?
       File.open(@paths_file, 'a') { |f| f << expanded_paths.join("\n") << "\n" }
-      cmd = "md5deep -r #{expanded_paths.join(' ')} | sort -k35 >> #{@checksum_file_before}"
+      cmd = "md5deep -r #{expanded_paths.join(' ')} | sort -k2 >> #{@checksum_file_before}"
       puts "About to execute #{cmd}"
       puts "content of cached dir:"
       system "find $HOME/.ivy2/cache/com.jcraft/jsch"
-      system "md5deep -r #{expanded_paths.join(' ')} | sort -k35 >> #{@checksum_file_before}"
+      system "md5deep -r #{expanded_paths.join(' ')} | sort -k2 >> #{@checksum_file_before}"
     else
       File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
     end
@@ -127,9 +124,11 @@ class Casher
 
     tar(:c, @push_tar, *cached_directories) do
       @counter += 1
-      puts "." if @counter % 5 == 0
+      $stdout.write "." if @counter % 5 == 0
       sleep 1
     end
+
+    puts "\n"
 
     puts "uploading archive"
     unless system "curl -T %p %p -s -S  >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
@@ -144,7 +143,7 @@ class Casher
     if md5deep_available?
       paths  = File.read(@paths_file).gsub("\n", ' ')
       diff_file = File.expand_path('checksum_diff', @casher_dir)
-      system("md5deep -r #{paths} | sort -k35 > #{@checksum_file_after}; diff -B #{@checksum_file_before} #{@checksum_file_after} | awk '/^[<>]/ {print $NF}' | sort > #{diff_file}")
+      system("md5deep -r #{paths} | sort -k2 > #{@checksum_file_after}; diff -B #{@checksum_file_before} #{@checksum_file_after} | awk '/^[<>]/ {print $NF}' | sort > #{diff_file}")
 
       result = File.size(@checksum_file_before) == 0 || File.size(diff_file) > 0
 
