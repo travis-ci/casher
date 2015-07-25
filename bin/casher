@@ -23,13 +23,15 @@ class Casher
 
   TAR_DIR_NOT_FOUND_REGEXP = /(\w+): Not found in archive/
 
-  MD5DEEP_CHECK_LOG_LIMIT = 1000
+  LOG_LIMIT = 1000
 
   def initialize
     @casher_dir = ENV['CASHER_DIR'] || File.expand_path(".casher", ENV["HOME"])
     @mtime_file = File.expand_path('mtime.yml', @casher_dir)
     @checksum_file_before = File.expand_path('md5sums_before', @casher_dir)
     @checksum_file_after  = File.expand_path('md5sums_after', @casher_dir)
+    @dir_content_before   = File.expand_path('dir_content_before', @casher_dir)
+    @dir_content_after    = File.expand_path('dir_content_after',  @casher_dir)
     @fetch_tar  = File.expand_path('fetch.tbz', @casher_dir)
     @push_tar   = File.expand_path('push.tbz', @casher_dir)
     @paths_file = File.expand_path('paths', @casher_dir)
@@ -85,11 +87,6 @@ class Casher
         sleep 1
       end
 
-      puts "archive extracted\n"
-      cmd = "find $HOME/.ivy2/cache/com.jcraft/jsch/"
-      puts "about to execute #{cmd}"
-      system cmd
-
       dirs_not_in_archive = errors.scan(TAR_DIR_NOT_FOUND_REGEXP).flatten.uniq
 
       dirs_not_in_archive.each do |dir|
@@ -99,13 +96,11 @@ class Casher
       expanded_paths.map { |p| @mtimes[p] = Time.now.to_i }
     end
 
+
     if md5deep_available?
       File.open(@paths_file, 'a') { |f| f << expanded_paths.join("\n") << "\n" }
-      cmd = "md5deep -r #{expanded_paths.join(' ')} | sort -k2 >> #{@checksum_file_before}"
-      puts "About to execute #{cmd}"
-      puts "content of cached dir:"
-      system "find $HOME/.ivy2/cache/com.jcraft/jsch"
       system "md5deep -r #{expanded_paths.join(' ')} | sort -k2 >> #{@checksum_file_before}"
+      system "find #{expanded_paths.join(' ')} | sort >> #{@dir_content_before}"
     else
       File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
     end
@@ -143,14 +138,22 @@ class Casher
     if md5deep_available?
       paths  = File.read(@paths_file).gsub("\n", ' ')
       diff_file = File.expand_path('checksum_diff', @casher_dir)
-      system("md5deep -r #{paths} | sort -k2 > #{@checksum_file_after}; diff -B #{@checksum_file_before} #{@checksum_file_after} | awk '/^[<>]/ {print $NF}' | sort > #{diff_file}")
+      new_files = File.expand_path('new_files', @casher_dir)
+      system("md5deep -x #{@checksum_file_before} -r #{paths} > #{diff_file}")
+      system("find #{paths} | sort > #{@dir_content_after}; diff #{@dir_content_before} #{@dir_content_after} | awk '/^>/ {print $2}' > #{new_files}")
 
-      result = File.size(@checksum_file_before) == 0 || File.size(diff_file) > 0
+      result = File.size(new_files) > 0 || File.size(diff_file) > 0
 
       if File.size(diff_file) > 0
-        first_bytes = File.read(diff_file, MD5DEEP_CHECK_LOG_LIMIT + 1)
-        puts "change detected:\n#{first_bytes}\n"
-        puts "...\n" if first_bytes.size > MD5DEEP_CHECK_LOG_LIMIT
+        first_bytes = File.read(diff_file, LOG_LIMIT + 1)
+        puts "change detected:\n#{first_bytes}"
+        $stdout.write "...\n" if first_bytes.size > LOG_LIMIT
+      end
+
+      if File.size(new_files) > 0
+        first_bytes = File.read(diff_file, LOG_LIMIT + 1)
+        puts "New files found:\n#{first_bytes}"
+        $stdout.write "...\n" if first_bytes.size > LOG_LIMIT
       end
 
       return result
