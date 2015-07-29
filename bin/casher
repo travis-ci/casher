@@ -68,7 +68,7 @@ class Casher
 
       @fetch_tar  = File.expand_path('fetch.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
-      if system "curl --tcp-nodelay #{tar_debug_flag} %p -o %p -f -s --retry 3 2>&1 | tee #{@casher_dir}/fetch.log" % [url, @fetch_tar]
+      if system "curl --tcp-nodelay #{@tar_debug_flag} %p -o %p -f -s --retry 3 2>&1 | tee #{@casher_dir}/fetch.log" % [url, @fetch_tar]
         logger.info "found cache"
         archive_found = true
         break
