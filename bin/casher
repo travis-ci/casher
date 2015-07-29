@@ -11,16 +11,8 @@ class Casher
   include FileUtils
 
   CURL_FORMAT = <<-EOF
-     time_namelookup:  %%{time_namelookup} s
-        time_connect:  %%{time_connect} s
-     time_appconnect:  %%{time_appconnect} s
-    time_pretransfer:  %%{time_pretransfer} s
-       time_redirect:  %%{time_redirect} s
-  time_starttransfer:  %%{time_starttransfer} s
-      speed_download:  %%{speed_download} bytes/s
-                     ----------
-          time_total:  %%{time_total} s
-  EOF
+time_namelookup=%{time_namelookup}s time_connect=%{time_connect}s time_appconnect=%{time_appconnect}s time_pretransfer=%{time_pretransfer}s time_redirect=%{time_redirect}s time_starttransfer=%{time_starttransfer}s speed_download=%{speed_download}bytes/s time_total=%{time_total}s
+EOF
 
   TAR_DIR_NOT_FOUND_REGEXP = /(\w+): Not found in archive/
 
@@ -43,7 +35,8 @@ class Casher
 
     @logger.level = Logger.const_get((ENV['CASHER_LOG_LEVEL'] || 'info').upcase)
     if @logger.level == Logger::DEBUG
-      @tar_debug_flag = "-v -w #{CURL_FORMAT}"
+      File.open("#{@casher_dir}/curl_format", "w") { |f| f.write CURL_FORMAT }
+      @tar_debug_flag = "-v -w @#{@casher_dir}/curl_format"
     end
 
     @counter = 0
@@ -69,6 +62,7 @@ class Casher
       @fetch_tar  = File.expand_path('fetch.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
       if system "curl --tcp-nodelay #{@tar_debug_flag} %p -o %p -f -s --retry 3 2>&1 | tee #{@casher_dir}/fetch.log" % [url, @fetch_tar]
+        puts # needs a newline here
         logger.info "found cache"
         archive_found = true
         break
@@ -127,6 +121,7 @@ class Casher
 
     logger.info "uploading archive"
     unless system "curl -T %p %p -s -S #{@tar_debug_flag} 2&>1 | tee #{@casher_dir}/push.log" % [@push_tar, url]
+      puts # needs a newline here
       logger.warn "failed to upload cache", File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")
     end
 
@@ -178,7 +173,7 @@ class Casher
     status = wait_thr.value
 
     if !status.success? && flag.to_s != 'x'
-      puts "FAILED: #{cmd}", errors, output
+      logger.warn "FAILED: #{cmd}", errors, output
     end
 
     [stdout, errors]
