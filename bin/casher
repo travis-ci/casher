@@ -42,7 +42,7 @@ class Casher
     @logger = Logger.new(STDOUT)
 
     @logger.level = Logger.const_get((ENV['CASHER_LOG_LEVEL'] || 'info').upcase)
-    if @logger.level == 'DEBUG'
+    if @logger.level == Logger::DEBUG
       @tar_debug_flag = "-v -w #{CURL_FORMAT}"
     end
 
