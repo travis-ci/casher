@@ -38,6 +38,9 @@ EOF
       File.open("#{@casher_dir}/curl_format", "w") { |f| f.write CURL_FORMAT }
       @tar_debug_flag = "-v -w @#{@casher_dir}/curl_format"
     end
+    @logger.formatter = proc do |severity, datetime, progname, msg|
+      "#{msg}\n"
+    end
 
     @counter = 0
 
