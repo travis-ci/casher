@@ -5,6 +5,7 @@ require 'fileutils'
 require 'yaml'
 require 'uri'
 require 'open3'
+require 'logger'
 
 class Casher
   include FileUtils
@@ -25,6 +26,8 @@ class Casher
 
   MD5DEEP_CHECK_LOG_LIMIT = 1000
 
+  attr_reader :logger
+
   def initialize
     @casher_dir = ENV['CASHER_DIR'] || File.expand_path(".casher", ENV["HOME"])
     @mtime_file = File.expand_path('mtime.yml', @casher_dir)
@@ -35,6 +38,9 @@ class Casher
     @paths_file = File.expand_path('paths', @casher_dir)
     @mtimes     = File.exist?(@mtime_file) ? YAML.load_file(@mtime_file) : {}
     @timeout    = Integer(ENV['CASHER_TIME_OUT'] || 3*60)
+
+    @logger = Logger.new(STDOUT)
+    @logger.level = Logger.const_get((ENV['LOG_LEVEL'] || 'warn').upcase)
 
     @counter = 0
 
@@ -47,7 +53,7 @@ class Casher
   rescue TimeoutError
     line  = "casher #{command}"
     line += Shellwords.join(arguments) if command == "add"
-    $stderr.puts "running `#{line}` took longer than #{@timeout} seconds and has been aborted"
+    logger.warn "running `#{line}` took longer than #{@timeout} seconds and has been aborted"
   end
 
   def fetch(*urls)
