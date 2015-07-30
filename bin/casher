@@ -64,12 +64,13 @@ EOF
 
       @fetch_tar  = File.expand_path('fetch.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
-      if system "curl --tcp-nodelay #{@tar_debug_flag} %p -o %p -f -s --retry 3 2>&1 | tee #{@casher_dir}/fetch.log" % [url, @fetch_tar]
+      if system "curl --tcp-nodelay -w '#{CURL_FORMAT}' %p -o %p -f -s --retry 3 >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar]
         puts # needs a newline here
         logger.info "found cache"
         archive_found = true
         break
       end
+      logger.debug File.read("#{@casher_dir}/fetch.log"), File.read("#{@casher_dir}/fetch.err.log")
     end
     unless archive_found
       logger.info "could not download cache"
@@ -123,8 +124,10 @@ EOF
     end
 
     logger.info "uploading archive"
-    unless system "curl -T %p %p -s -S #{@tar_debug_flag} 2&>1 | tee #{@casher_dir}/push.log" % [@push_tar, url]
-      puts # needs a newline here
+    puts # needs a newline here
+    if system "curl -T %p %p -s -S  >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
+      logger.debug "successfully uploaed cache", File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")
+    else
       logger.warn "failed to upload cache", File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")
     end
 
