@@ -100,8 +100,10 @@ EOF
     if md5deep_available?
       File.open(@paths_file, 'a') { |f| f << expanded_paths.join("\n") << "\n" }
       system "md5deep -r #{expanded_paths.join(' ')} | sort >> #{@checksum_file_before}"
+      logger.debug "Directories added: #{File.read(@paths_file)}"
     else
       File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
+      logger.debug "Directories added: #{File.read(@mtimes.keys)}"
     end
 
   end
@@ -198,12 +200,12 @@ EOF
   end
 
   def md5deep_available?
-    @md5deep_available ||= (system("which md5deep >/dev/null 2>&1") || install_md5deep)
+    @md5deep_available ||= (system("which md5deep >/dev/null 2>&1").tap { |x| logger.debug("md5deep found on system") } || install_md5deep)
   end
 
   def install_md5deep
     if ENV['TRAVIS_OS_NAME'] == 'osx'
-      system('brew install md5deep')
+      system('brew install md5deep').tap { |x| logger.info "Successfully installed md5deep" }
     end
   end
 
