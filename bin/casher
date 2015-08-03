@@ -34,7 +34,7 @@ EOF
     @logger = Logger.new(STDOUT)
 
     @logger.level = Logger.const_get((ENV['CASHER_LOG_LEVEL'] || 'info').upcase)
-    curl_log_level = ENV['CURL_LOG_LEVEL'].upcase
+    curl_log_level = (ENV['CURL_LOG_LEVEL'] || '').upcase
     if @logger.level == Logger::DEBUG
       File.open("#{@casher_dir}/curl_format", "w") { |f| f.write CURL_FORMAT }
       @curl_debug_flag = "-w @#{@casher_dir}/curl_format"
