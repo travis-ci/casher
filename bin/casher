@@ -149,7 +149,7 @@ EOF
       system("md5deep -r #{paths} | sort > #{@checksum_file_after}; diff -B #{@checksum_file_before} #{@checksum_file_after} | awk '/^[<>]/ {print $NF}' | sort > #{diff_file}")
       logger.debug("checksums before: #{File.read(@checksum_file_before, MD5DEEP_CHECK_LOG_LIMIT)}")
       logger.debug("checksums after: #{File.read(@checksum_file_after, MD5DEEP_CHECK_LOG_LIMIT)}")
-      logger.debug("Diff file content: #{File.read(@diff_file, MD5DEEP_CHECK_LOG_LIMIT)}")
+      logger.debug("Diff file content: #{File.read(diff_file, MD5DEEP_CHECK_LOG_LIMIT)}")
 
       result = File.size(@checksum_file_before) == 0 || File.size(diff_file) > 0
 
