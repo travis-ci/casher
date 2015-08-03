@@ -36,7 +36,7 @@ EOF
     @logger.level = Logger.const_get((ENV['CASHER_LOG_LEVEL'] || 'info').upcase)
     if @logger.level == Logger::DEBUG
       File.open("#{@casher_dir}/curl_format", "w") { |f| f.write CURL_FORMAT }
-      @tar_debug_flag = "-v -w @#{@casher_dir}/curl_format"
+      @tar_debug_flag = "-w @#{@casher_dir}/curl_format"
     end
     @logger.formatter = proc do |severity, datetime, progname, msg|
       "#{msg}\n"
