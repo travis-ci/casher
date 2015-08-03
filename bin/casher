@@ -176,7 +176,7 @@ EOF
     status = wait_thr.value
 
     if !status.success? && flag.to_s != 'x'
-      logger.warn "FAILED: #{cmd}", errors, output
+      logger.warn "FAILED: #{cmd}" << errors << output
     end
 
     [stdout, errors]
