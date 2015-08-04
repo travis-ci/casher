@@ -46,7 +46,7 @@ EOF
     when 'DEBUG'
       " -vvv"
     else
-      " -s"
+      " -s -S"
     end
 
     @logger.formatter = proc do |severity, datetime, progname, msg|
@@ -136,11 +136,11 @@ EOF
     end
 
     logger.info "uploading archive"
-    if system ("curl -T %p %p -S #{@curl_debug_flag} 2&>1 > #{@casher_dir}/push.log" % [@push_tar, url]).tap {|x| logger.debug "executing #{x}"}
-      logger.debug File.read(File.join(@casher_dir, 'push.log'))
+    if system ("curl -T %p %p #{@curl_debug_flag} 2> #{@casher_dir}/push.err.log > #{@casher_dir}/push.log" % [@push_tar, url]).tap {|x| logger.debug "executing #{x}"}
+      logger.debug ["uploaded cache", File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")].join("\n")
     else
       puts # needs a newline here
-      logger.warn "failed to upload cache", File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")
+      logger.warn ["failed to upload cache", File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")].join("\n")
     end
 
   end
