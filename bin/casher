@@ -133,10 +133,11 @@ EOF
     end
 
     logger.info "uploading archive"
-    unless system "curl -T %p %p -s -S #{@curl_debug_flag} 2&>1 > #{@casher_dir}/push.log" % [@push_tar, url]
+    unless system ("curl -T %p %p -s -S #{@curl_debug_flag} 2&>1 > #{@casher_dir}/push.log" % [@push_tar, url]).tap {|x| logger.debug "executing #{x}"}
       puts # needs a newline here
       logger.warn "failed to upload cache", File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")
     end
+    logger.debug File.read(File.join(@casher_dir, 'push.log'))
 
   end
 
