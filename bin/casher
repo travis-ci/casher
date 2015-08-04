@@ -46,7 +46,7 @@ EOF
     when 'DEBUG'
       " -vvv"
     else
-      " -s -S"
+      " -s"
     end
 
     @logger.formatter = proc do |severity, datetime, progname, msg|
