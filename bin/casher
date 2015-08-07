@@ -76,7 +76,7 @@ EOF
 
       @fetch_tar  = File.expand_path('fetch.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
-      if system "curl --tcp-nodelay #{@curl_debug_flag} %p -o %p -f --retry 3 2>&1 > #{@casher_dir}/fetch.log" % [url, @fetch_tar]
+      if system "curl -L --tcp-nodelay #{@curl_debug_flag} %p -o %p -f --retry 3 2>&1 > #{@casher_dir}/fetch.log" % [url, @fetch_tar]
         puts # needs a newline here
         logger.info "found cache"
         archive_found = true
@@ -137,7 +137,7 @@ EOF
     end
 
     logger.info "uploading archive"
-    if system "curl -T %p %p #{@curl_debug_flag} 2> #{@casher_dir}/push.err.log > #{@casher_dir}/push.log" % [@push_tar, url]
+    if system "curl -L -T %p %p #{@curl_debug_flag} 2> #{@casher_dir}/push.err.log > #{@casher_dir}/push.log" % [@push_tar, url]
       logger.debug ["uploaded cache", File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")].join("\n")
     else
       puts # needs a newline here
