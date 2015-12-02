@@ -21,6 +21,12 @@ class Casher
           time_total:  %%{time_total} s
   EOF
 
+  ANSI_RED="\033[31;1m"
+  ANSI_GREEN="\033[32;1m"
+  ANSI_RESET="\033[0m"
+  ANSI_CLEAR="\033[0K"
+
+
   TAR_DIR_NOT_FOUND_REGEXP = /(\w+): Not found in archive/
 
   MD5DEEP_CHECK_LOG_LIMIT = 1000
@@ -51,21 +57,21 @@ class Casher
   end
 
   def fetch(*urls)
-    puts "attempting to download cache archive"
+    msg "attempting to download cache archive"
     archive_found = false
     urls.each do |url|
-      puts "fetching #{%r(([^/]+?/[^/]+?)(\?.*)?$).match(url)[1]}"
+      msg "fetching #{%r(([^/]+?/[^/]+?)(\?.*)?$).match(url)[1]}"
 
       @fetch_tar  = File.expand_path('fetch.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
       if system "curl --tcp-nodelay -w '#{CURL_FORMAT}' %p -o %p -f -s --retry 3 >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar]
-        puts "found cache"
+        msg "found cache"
         archive_found = true
         break
       end
     end
     unless archive_found
-      puts "could not download cache"
+      msg "could not download cache", :red
       if File.exist? @fetch_tar
         rm @fetch_tar
       end
@@ -74,7 +80,7 @@ class Casher
 
   def add(*paths)
     expanded_paths = paths.map { |p| File.expand_path(p) }
-    expanded_paths.map { |p| puts "adding #{p} to cache"; mkdir_p p }
+    expanded_paths.map { |p| msg "adding #{p} to cache"; mkdir_p p }
 
     if fetched_archive
       output, errors = tar(:x, fetched_archive, *expanded_paths) do
@@ -84,7 +90,7 @@ class Casher
       dirs_not_in_archive = errors.scan(TAR_DIR_NOT_FOUND_REGEXP).flatten.uniq
 
       dirs_not_in_archive.each do |dir|
-        puts "#{dir} is not yet cached"
+        msg "#{dir} is not yet cached", :red
       end
 
       expanded_paths.map { |p| @mtimes[p] = Time.now.to_i }
@@ -101,11 +107,11 @@ class Casher
 
   def push(url)
     unless changed?
-      puts "nothing changed, not updating cache"
+      msg "nothing changed, not updating cache"
       return
     end
 
-    puts "changes detected, packing new archive"
+    msg "changes detected, packing new archive"
 
     @push_tar  = File.expand_path('push.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
@@ -115,9 +121,10 @@ class Casher
       sleep 1
     end
 
-    puts "uploading archive"
+    msg "uploading archive"
     unless system "curl -T %p %p -s -S  >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
-      puts "failed to upload cache", File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")
+      msg "failed to upload cache", :red
+      puts File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")
     end
 
   end
@@ -134,8 +141,8 @@ class Casher
 
       if File.size(diff_file) > 0
         first_bytes = File.read(diff_file, MD5DEEP_CHECK_LOG_LIMIT + 1)
-        puts "change detected:\n#{first_bytes}\n"
-        puts "...\n" if first_bytes.size > MD5DEEP_CHECK_LOG_LIMIT
+        msg "change detected:\n#{first_bytes}\n"
+        msg "...\n" if first_bytes.size > MD5DEEP_CHECK_LOG_LIMIT
       end
 
       return result
@@ -145,7 +152,7 @@ class Casher
       Dir.glob("#{path}/**/*").any? do |file|
         next if File.mtime(file).to_i <= mtime
         next if File.directory?(file)
-        puts "change detected: #{file}"
+        msg "change detected: #{file}"
         true
       end
     end
@@ -167,7 +174,8 @@ class Casher
     status = wait_thr.value
 
     if !status.success? && flag.to_s != 'x'
-      puts "FAILED: #{cmd}", errors, output
+      msg "FAILED: #{cmd}", :red
+      puts errors, output
     end
 
     [stdout, errors]
@@ -200,6 +208,17 @@ class Casher
     else
       @mtimes.keys
     end
+  end
+
+  def msg(text, color = :green)
+    marker = case color
+    when :green
+      ANSI_GREEN
+    when :red
+      ANSI_RED
+    end
+
+    puts "#{marker}#{text}#{ANSI_RESET}"
   end
 end
 
