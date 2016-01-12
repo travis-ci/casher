@@ -64,7 +64,12 @@ class Casher
 
       @fetch_tar  = File.expand_path('fetch.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
-      if system "curl --tcp-nodelay -w '#{CURL_FORMAT}' %p -o %p -f -s --retry 3 >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar]
+      args = ['curl', '--tcp-nodelay', '-w', CURL_FORMAT, '-o', @fetch_tar, '-f', '-s', '--retry', '3', url]
+      status, * = subprocess(args, File.join(@casher_dir, 'fetch.log'), File.join(@casher_dir, 'fetch.err.log')) do
+        sleep 1
+      end
+
+      if status
         msg "found cache"
         archive_found = true
         break
