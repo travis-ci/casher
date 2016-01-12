@@ -127,9 +127,13 @@ class Casher
     end
 
     msg "uploading archive"
-    unless system "curl -T %p %p -s -S  >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
+    curl_args = ['curl', '-T', @push_tar, '-s', '-S', url]
+    status, output, errors = subprocess(curl_args, File.join(@casher_dir, 'push.log'), File.join(@casher_dir, 'push.err.log')) do
+      sleep 1
+    end
+    unless status
       msg "failed to upload cache", :red
-      puts File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")
+      puts errors, output
     end
 
   end
