@@ -10,15 +10,15 @@ class Casher
   include FileUtils
 
   CURL_FORMAT = <<-EOF
-     time_namelookup:  %%{time_namelookup} s
-        time_connect:  %%{time_connect} s
-     time_appconnect:  %%{time_appconnect} s
-    time_pretransfer:  %%{time_pretransfer} s
-       time_redirect:  %%{time_redirect} s
-  time_starttransfer:  %%{time_starttransfer} s
-      speed_download:  %%{speed_download} bytes/s
+     time_namelookup:  %{time_namelookup} s
+        time_connect:  %{time_connect} s
+     time_appconnect:  %{time_appconnect} s
+    time_pretransfer:  %{time_pretransfer} s
+       time_redirect:  %{time_redirect} s
+  time_starttransfer:  %{time_starttransfer} s
+      speed_download:  %{speed_download} bytes/s
                      ----------
-          time_total:  %%{time_total} s
+          time_total:  %{time_total} s
   EOF
 
   ANSI_RED="\033[31;1m"
