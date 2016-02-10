@@ -106,6 +106,8 @@ class Casher
   end
 
   def push(url)
+    return unless File.exist?(@paths_file)
+
     unless changed?
       msg "nothing changed, not updating cache"
       return
