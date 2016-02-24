@@ -106,14 +106,14 @@ class Casher
   end
 
   def push(url)
+    cached_directories.map { |p| mkdir_p p }
+
     unless changed?
       msg "nothing changed, not updating cache"
       return
     end
 
     msg "changes detected, packing new archive"
-
-    cached_directories.map { |p| mkdir_p p }
 
     @push_tar  = File.expand_path('push.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
