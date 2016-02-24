@@ -113,6 +113,8 @@ class Casher
 
     msg "changes detected, packing new archive"
 
+    cached_directories.map { |p| mkdir_p p }
+
     @push_tar  = File.expand_path('push.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
     tar(:c, @push_tar, *cached_directories) do
