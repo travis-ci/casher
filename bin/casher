@@ -98,6 +98,7 @@ class Casher
 
     if md5deep_available?
       File.open(@paths_file, 'a') { |f| f << expanded_paths.join("\n") << "\n" }
+      BUGGY?             ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
       system "md5deep -r #{expanded_paths.join(' ')} | sort >> #{@checksum_file_before}"
     else
       File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
@@ -137,6 +138,7 @@ class Casher
     if md5deep_available?
       paths  = File.read(@paths_file).gsub("\n", ' ')
       diff_file = File.expand_path('checksum_diff', @casher_dir)
+      BUGGY?             ↓↓↓↓↓↓↓↓
       system("md5deep -r #{paths} | sort > #{@checksum_file_after}; diff -B #{@checksum_file_before} #{@checksum_file_after} | awk '/^[<>]/ {print $NF}' | sort | uniq > #{diff_file}")
 
       result = File.size(@checksum_file_before) == 0 || File.size(diff_file) > 0
