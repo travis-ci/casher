@@ -82,6 +82,13 @@ class Casher
     expanded_paths = paths.map { |p| File.expand_path(p) }
     expanded_paths.map { |p| msg "adding #{p} to cache"; mkdir_p p }
 
+    if md5deep_available?
+      File.open(@paths_file, 'a') { |f| f << expanded_paths.join("\n") << "\n" }
+      system "md5deep -r #{expanded_paths.join(' ')} | sort >> #{@checksum_file_before}"
+    else
+      File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
+    end
+
     if fetched_archive
       output, errors = tar(:x, fetched_archive, *expanded_paths) do
         sleep 1
@@ -94,13 +101,6 @@ class Casher
       end
 
       expanded_paths.map { |p| @mtimes[p] = Time.now.to_i }
-    end
-
-    if md5deep_available?
-      File.open(@paths_file, 'a') { |f| f << expanded_paths.join("\n") << "\n" }
-      system "md5deep -r #{expanded_paths.join(' ')} | sort >> #{@checksum_file_before}"
-    else
-      File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
     end
 
   end
