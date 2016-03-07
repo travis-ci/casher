@@ -7,19 +7,19 @@ describe Casher do
 
   describe '#run' do
     it 'calls "curl" to download archives' do
-      expect(subject).to     receive(:system).with(/curl\b.*#{tgz_url.gsub('?','\?')}/m).and_return(true)
-      expect(subject).not_to receive(:system).with(/curl\b.*#{tbz_url.gsub('?','\?')}/m)
+      expect(subject).to     receive(:subprocess).with(a_collection_starting_with('curl').and(end_with(tgz_url)), anything, anything).and_return(true)
+      expect(subject).not_to receive(:subprocess).with(a_collection_ending_with(tbz_url), anything, anything)
       subject.run('fetch', tgz_url, tbz_url)
     end
   end
 
   context 'when the first archive is not available' do
     before :each do
-      expect(subject).to receive(:system).with(/curl\b.*#{tgz_url.gsub('?','\?')}/m).and_return(false)
+      expect(subject).to receive(:subprocess).with(a_collection_ending_with(tgz_url), anything, anything).and_return(false)
     end
 
     it 'falls back to the next archive' do
-      expect(subject).to receive(:system).with(/curl\b.*#{tbz_url.gsub('?','\?')}/m)
+      expect(subject).to receive(:subprocess).with(a_collection_ending_with(tbz_url), anything, anything)
       subject.run('fetch', tgz_url, tbz_url)
     end
   end

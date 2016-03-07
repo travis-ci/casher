@@ -10,15 +10,15 @@ class Casher
   include FileUtils
 
   CURL_FORMAT = <<-EOF
-     time_namelookup:  %%{time_namelookup} s
-        time_connect:  %%{time_connect} s
-     time_appconnect:  %%{time_appconnect} s
-    time_pretransfer:  %%{time_pretransfer} s
-       time_redirect:  %%{time_redirect} s
-  time_starttransfer:  %%{time_starttransfer} s
-      speed_download:  %%{speed_download} bytes/s
+     time_namelookup:  %{time_namelookup} s
+        time_connect:  %{time_connect} s
+     time_appconnect:  %{time_appconnect} s
+    time_pretransfer:  %{time_pretransfer} s
+       time_redirect:  %{time_redirect} s
+  time_starttransfer:  %{time_starttransfer} s
+      speed_download:  %{speed_download} bytes/s
                      ----------
-          time_total:  %%{time_total} s
+          time_total:  %{time_total} s
   EOF
 
   ANSI_RED="\033[31;1m"
@@ -64,7 +64,12 @@ class Casher
 
       @fetch_tar  = File.expand_path('fetch.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
-      if system "curl --tcp-nodelay -w '#{CURL_FORMAT}' %p -o %p -f -s --retry 3 >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar]
+      args = ['curl', '--tcp-nodelay', '-w', CURL_FORMAT, '-o', @fetch_tar, '-f', '-s', '--retry', '3', url]
+      status, * = subprocess(args, File.join(@casher_dir, 'fetch.log'), File.join(@casher_dir, 'fetch.err.log')) do
+        sleep 1
+      end
+
+      if status
         msg "found cache"
         archive_found = true
         break
@@ -124,9 +129,13 @@ class Casher
     end
 
     msg "uploading archive"
-    unless system "curl -T %p %p -s -S  >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
+    curl_args = ['curl', '-T', @push_tar, '-s', '-S', url]
+    status, output, errors = subprocess(curl_args, File.join(@casher_dir, 'push.log'), File.join(@casher_dir, 'push.err.log')) do
+      sleep 1
+    end
+    unless status
       msg "failed to upload cache", :red
-      puts File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")
+      puts errors, output
     end
 
   end
@@ -164,24 +173,30 @@ class Casher
   def tar(flag, file, *args, &block)
     compression_flag = file.end_with?('.tbz') ? 'j' : 'z'
 
-    cmd = "tar -P#{compression_flag}#{flag}f #{Shellwords.escape(file)} #{Shellwords.join(args)}"
-    stdin, stdout, stderr, wait_thr = Open3.popen3(cmd)
+    cmd_args = ['tar', "-P#{compression_flag}#{flag}f", file] + args
+    status, output, errors = subprocess(cmd_args, File.join(@casher_dir, 'tar.log'), File.join(@casher_dir, 'tar.err.log'), &block)
+
+    if !status && flag.to_s != 'x'
+      msg "FAILED: #{cmd_args.join(' ')}", :red
+      puts errors, output
+    end
+
+    [output, errors]
+  end
+
+  def subprocess(args, output_logfile, err_logfile, &block)
+    stdin, stdout, stderr, wait_thr = Open3.popen3(*args)
     while wait_thr.status do
       yield
     end
 
     errors = stderr.read
     output = stdout.read
-    File.write(File.join(@casher_dir, 'tar.log'), output)
-    File.write(File.join(@casher_dir, 'tar.err.log'), errors)
+    File.write(output_logfile, output)
+    File.write(err_logfile, errors)
     status = wait_thr.value
 
-    if !status.success? && flag.to_s != 'x'
-      msg "FAILED: #{cmd}", :red
-      puts errors, output
-    end
-
-    [stdout, errors]
+    [status, output, errors]
   end
 
   def path_ext(url)
