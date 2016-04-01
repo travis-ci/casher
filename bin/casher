@@ -42,8 +42,6 @@ class Casher
     @mtimes     = File.exist?(@mtime_file) ? YAML.load_file(@mtime_file) : {}
     @timeout    = Integer(ENV['CASHER_TIME_OUT'] || 3*60)
 
-    @headers_conf_file = File.expand_path('curl_headers', ENV['HOME'])
-
     @counter = 0
 
     mkdir_p @casher_dir
@@ -67,7 +65,7 @@ class Casher
 
       @fetch_tar  = File.expand_path('fetch.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
-      if system "curl --tcp-nodelay -w '#{CURL_FORMAT}' #{conf_file_flag} %p -o %p -f -s --retry 3 >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar]
+      if system "curl --tcp-nodelay -w '#{CURL_FORMAT}' %p -o %p -f -s --retry 3 >#{@casher_dir}/fetch.log 2>#{@casher_dir}/fetch.err.log" % [url, @fetch_tar]
         msg "found cache"
         archive_found = true
         break
@@ -128,7 +126,7 @@ class Casher
     end
 
     msg "uploading archive"
-    unless system "curl -T %p %p -s -S #{conf_file_flag} >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
+    unless system "curl -T %p %p -s -S  >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
       msg "failed to upload cache", :red
       puts File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")
     end
@@ -226,12 +224,6 @@ class Casher
     end
 
     puts "#{marker}#{text}#{ANSI_RESET}"
-  end
-
-  def conf_file_flag
-    if File.exist? @headers_conf_file
-      "-K #{@headers_conf_file}"
-    end
   end
 end
 
