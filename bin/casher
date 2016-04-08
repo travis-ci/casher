@@ -84,11 +84,13 @@ class Casher
     expanded_paths = paths.map { |p| File.expand_path(p) }
     expanded_paths.map { |p| msg "adding #{p} to cache"; mkdir_p p }
 
+    mtime_file = nil
+
     if md5deep_available?
       File.open(@paths_file, 'a') { |f| f << expanded_paths.join("\n") << "\n" }
       system "md5deep -r #{expanded_paths.join(' ')} | sort >> #{@checksum_file_before}"
     else
-      File.open(@mtime_file, 'w') { |f| f << @mtimes.to_yaml }
+      mtime_file = File.open(@mtime_file, 'w')
     end
 
     if fetched_archive
@@ -103,6 +105,9 @@ class Casher
       end
 
       expanded_paths.map { |p| @mtimes[p] = Time.now.to_i }
+      if mtime_file
+        mtime_file.write @mtimes.to_yaml
+      end
     end
 
   end
