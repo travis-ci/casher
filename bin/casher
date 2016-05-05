@@ -124,7 +124,7 @@ class Casher
 
     @push_tar  = File.expand_path('push.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
-    tar(:cv, @push_tar, *cached_directories) do
+    tar(:c, @push_tar, *cached_directories) do
       @counter += 1
       puts "." if @counter % 5 == 0
       sleep 1
@@ -172,7 +172,6 @@ class Casher
     compression_flag = file.end_with?('.tbz') ? 'j' : 'z'
 
     cmd = "tar -P#{compression_flag}#{flag}f #{Shellwords.escape(file)} #{Shellwords.join(args)}"
-    $stdout.puts "Executing #{cmd}"
     stdin, stdout, stderr, wait_thr = Open3.popen3(cmd)
     while wait_thr.status do
       yield
@@ -190,10 +189,6 @@ class Casher
     end
 
     [stdout, errors]
-
-  rescue
-    $stdout.puts output
-    raise
   end
 
   def path_ext(url)
