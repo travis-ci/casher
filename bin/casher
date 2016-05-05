@@ -172,6 +172,7 @@ class Casher
     compression_flag = file.end_with?('.tbz') ? 'j' : 'z'
 
     cmd = "tar -P#{compression_flag}#{flag}f #{Shellwords.escape(file)} #{Shellwords.join(args)}"
+    puts "Executing #{cmd}"
     stdin, stdout, stderr, wait_thr = Open3.popen3(cmd)
     while wait_thr.status do
       yield
