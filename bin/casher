@@ -189,6 +189,8 @@ class Casher
       puts errors, output
     end
 
+    $stdout.puts output
+
     [stdout, errors]
   end
 
