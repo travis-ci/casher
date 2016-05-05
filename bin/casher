@@ -54,7 +54,6 @@ class Casher
     line  = "casher #{command}"
     line += Shellwords.join(arguments) if command == "add"
     $stderr.puts "running `#{line}` took longer than #{@timeout} seconds and has been aborted"
-    exit false
   end
 
   def fetch(*urls)
@@ -76,7 +75,6 @@ class Casher
       if File.exist? @fetch_tar
         rm @fetch_tar
       end
-      exit false
     end
   end
 
