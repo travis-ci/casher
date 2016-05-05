@@ -124,7 +124,7 @@ class Casher
 
     @push_tar  = File.expand_path('push.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
-    tar(:c, @push_tar, *cached_directories) do
+    tar(:cv, @push_tar, *cached_directories) do
       @counter += 1
       puts "." if @counter % 5 == 0
       sleep 1
