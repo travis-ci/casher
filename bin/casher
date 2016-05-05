@@ -189,9 +189,11 @@ class Casher
       puts errors, output
     end
 
-    $stdout.puts output
-
     [stdout, errors]
+
+  rescue
+    $stdout.puts output
+    raise
   end
 
   def path_ext(url)
