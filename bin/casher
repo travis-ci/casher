@@ -111,7 +111,7 @@ class Casher
   end
 
   def push(url)
-    cached_directories.map { |p| mkdir_p p }
+    cached_directories.map { |p| p = File.dirname(p) if File.file?(p); mkdir_p p }
 
     unless changed?
       msg "nothing changed, not updating cache"
