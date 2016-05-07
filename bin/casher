@@ -85,7 +85,7 @@ class Casher
     mtime_file = nil
 
     if md5deep_available?
-      File.open(@paths_file, 'a') { |f| f << expanded_paths.join("\n") << "\n" }
+      File.open(@paths_file, 'a') { |f| f << expanded_paths.compact.join("\n") << "\n" }
       system "md5deep -r #{Shellwords.escape(expanded_paths.compact.join(' '))} | sort >> #{@checksum_file_before}"
     else
       mtime_file = File.open(@mtime_file, 'w')
