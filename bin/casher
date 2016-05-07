@@ -86,7 +86,7 @@ class Casher
 
     if md5deep_available?
       File.open(@paths_file, 'a') { |f| f << expanded_paths.join("\n") << "\n" }
-      system "md5deep -r #{Shellwords.escape(expanded_paths.join(' '))} | sort >> #{@checksum_file_before}"
+      system "md5deep -r \"#{Shellwords.escape(expanded_paths.join(' '))}\" | sort >> #{@checksum_file_before}"
     else
       mtime_file = File.open(@mtime_file, 'w')
     end
@@ -143,7 +143,7 @@ class Casher
       paths  = File.read(@paths_file).gsub("\n", ' ')
       diff_file = File.expand_path('checksum_diff', @casher_dir)
       system("sort #{@checksum_file_before} | uniq > #{@checksum_file_before}.sorted")
-      system("md5deep -r #{Shellwords.escape(paths)} | sort | uniq > #{@checksum_file_after}; diff -B #{@checksum_file_before}.sorted #{@checksum_file_after} | awk '/^[<>]/ {print $NF}' | sort | uniq > #{diff_file}")
+      system("md5deep -r \"#{Shellwords.escape(paths)}\" | sort | uniq > #{@checksum_file_after}; diff -B #{@checksum_file_before}.sorted #{@checksum_file_after} | awk '/^[<>]/ {print $NF}' | sort | uniq > #{diff_file}")
 
       result = File.size(@checksum_file_before) == 0 || File.size(diff_file) > 0
 
