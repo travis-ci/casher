@@ -100,7 +100,7 @@ class Casher
       expanded_paths.map { |p| @mtimes[p] = Time.now.to_i }
 
       if md5deep_available?
-        system "md5deep -r #{Shellwords.escape(expanded_paths.compact.join(' '))} | sort >> #{@checksum_file_before}"
+        system "md5deep -r #{expanded_paths.compact.map { |p| Shellwords.escape(p) }.join(' ')} | sort >> #{@checksum_file_before}"
       else
         mtime_file.write @mtimes.to_yaml
       end
