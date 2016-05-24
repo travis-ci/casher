@@ -39,7 +39,7 @@ class Casher
     @fetch_tar  = File.expand_path('fetch.tbz', @casher_dir)
     @push_tar   = File.expand_path('push.tbz', @casher_dir)
     @paths_file = File.expand_path('paths', @casher_dir)
-    @mtimes     = File.exist?(@mtime_file) ? YAML.load_file(@mtime_file) : {}
+    @mtimes     = File.exist?(@mtime_file) && File.size(@mtime_file) > 0 ? YAML.load_file(@mtime_file) : {}
     @timeout    = Integer(ENV['CASHER_TIME_OUT'] || 3*60)
 
     @counter = 0
@@ -82,7 +82,6 @@ class Casher
     expanded_paths = paths.map { |p| File.expand_path(p) }
     expanded_paths.map { |p| msg "adding #{p} to cache"; mkdir_p p }
 
-    mtime_file = File.open(@mtime_file, 'w')
     File.open(@paths_file, 'a') { |f| f << expanded_paths.compact.join("\n") << "\n" }
     FileUtils.touch(@checksum_file_before)
 
@@ -102,6 +101,7 @@ class Casher
       if md5deep_available?
         system "md5deep -r #{expanded_paths.compact.map { |p| Shellwords.escape(p) }.join(' ')} | sort >> #{@checksum_file_before}"
       else
+        mtime_file = File.open(@mtime_file, 'w')
         mtime_file.write @mtimes.to_yaml
       end
     end
@@ -150,7 +150,7 @@ class Casher
 
       if File.size(diff_file) > 0
         first_bytes = File.read(diff_file, MD5DEEP_CHECK_LOG_LIMIT + 1)
-        msg "change detected:\n#{first_bytes}\n"
+        msg "change detected (content changed, file is created, or file is deleted):\n#{first_bytes}\n"
         msg "...\n" if first_bytes.size > MD5DEEP_CHECK_LOG_LIMIT
       end
 
