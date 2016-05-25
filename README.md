@@ -1,6 +1,6 @@
 # CA$H€R
 
-Casher is a Ruby script used by [Travis Build](https://github.com/travis-ci/travis-build) to fetch, create, and update caches. Casher fetches a cache if one exists and creates one if it doesn't. It uses md5deep to detect changes in an existing cache and updates the cache if a difference in the MD5 checksums are found.
+Casher is a Ruby script used by [Travis Build](https://github.com/travis-ci/travis-build) to fetch, create, and update caches. Casher fetches a cache if one exists and creates one if it doesn't. It uses md5deep to detect changes in an existing cache and updates the cache if a difference in the MD5 checksums are found. Casher's source is hosted and used directly from Github.
 
 ![Comic about cash](http://4.bp.blogspot.com/_XdP6Lp2ceqY/TEJuww2sk2I/AAAAAAAAWpY/EmWweRXahGM/s1600/tumblr_l55qcmER041qznd83o1_500.jpg)
 
@@ -13,3 +13,10 @@ Travis Build can tell Casher to add the directories or shortcuts (bundler, pip) 
 ## Status
 
 Casher is still actively used by both Travis for private repositories and Travis for open source. It is maintained by @BanzaiMan and falls under Team Sapphire's domain.
+
+## License & copyright information
+
+See LICENSE file.
+
+Copyright (c) 2011-2016 [Travis CI development
+team](https://github.com/travis-ci).
