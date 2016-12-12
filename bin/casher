@@ -110,8 +110,6 @@ class Casher
         mtime_file = File.open(@mtime_file, 'w')
         mtime_file.write @mtimes.to_yaml
       end
-
-      FileUtils.rm_f(fetched_archive)
     end
 
   end
