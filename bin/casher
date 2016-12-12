@@ -112,6 +112,7 @@ class Casher
       end
 
       FileUtils.rm_f(fetched_archive)
+      FileUtils.touch(fetched_archive)
     end
 
   end
