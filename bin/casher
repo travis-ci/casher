@@ -53,7 +53,7 @@ class Casher
   rescue TimeoutError
     line  = "casher #{command}"
     line += Shellwords.join(arguments) if command == "add"
-    $stderr.puts "running `#{line}` took longer than #{@timeout} seconds and has been aborted"
+    $stderr.puts "running `#{line}` took longer than #{@timeout} seconds and has been aborted.\nYou can extend the timeout with `cache.timeout`. See https://docs.travis-ci.com/user/caching/#Setting-the-timeout for details"
   end
 
   def fetch(*urls)
