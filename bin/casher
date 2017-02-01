@@ -81,10 +81,14 @@ class Casher
   def add(*paths)
     expanded_paths = paths.map { |p| File.expand_path(p) }
     expanded_paths.map do |p|
-      msg "adding #{p} to cache"
-      unless File.exist?(p)
-        msg "creating directory #{p}"
-        mkdir_p p
+      begin
+        msg "adding #{p} to cache"
+        unless File.exist?(p)
+          msg "creating directory #{p}"
+          mkdir_p p
+        end
+      rescue Exception => e
+        msg "Failed to create directory #{p} (Reason: #{e.message}", :red
       end
     end
 
