@@ -83,10 +83,13 @@ class Casher
     expanded_paths = paths.map { |p| File.expand_path(p) }
     expanded_paths.map do |p|
       msg "adding #{p} to cache"
-      unless File.exist?(p)
+      if File.exist?(p)
+        msg "refreshing directory #{p} to ensure clean working environment"
+        rm_rf p
+      else
         msg "creating directory #{p}"
-        mkdir_p p
       end
+      mkdir_p p
     end
 
     File.open(@paths_file, 'a') { |f| f << expanded_paths.compact.join("\n") << "\n" }
