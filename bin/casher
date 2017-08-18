@@ -133,7 +133,7 @@ class Casher
     end
 
     msg "uploading archive"
-    unless system "curl -T %p %p -s -S -f >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
+    unless system "curl -T %p %p -f -v >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
       msg "failed to upload cache", :red
       puts File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")
     end
