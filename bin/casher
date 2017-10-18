@@ -60,7 +60,8 @@ class Casher
     msg "attempting to download cache archive"
     archive_found = false
     urls.each do |url|
-      msg "fetching #{%r(([^/]+?/[^/]+?)(\?.*)?$).match(url)[1]}"
+      cache_file_name = URI.parse(url).path.split('/').drop(3).join('/')
+      msg "fetching #{cache_file_name}"
 
       @fetch_tar  = File.expand_path('fetch.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
