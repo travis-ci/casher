@@ -60,7 +60,8 @@ class Casher
     msg "attempting to download cache archive"
     archive_found = false
     urls.each do |url|
-      msg "fetching #{%r(([^/]+?/[^/]+?)(\?.*)?$).match(url)[1]}"
+      cache_file_name = URI.parse(url).path.split('/').drop(3).join('/')
+      msg "fetching #{cache_file_name}"
 
       @fetch_tar  = File.expand_path('fetch.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
@@ -82,10 +83,13 @@ class Casher
     expanded_paths = paths.map { |p| File.expand_path(p) }
     expanded_paths.map do |p|
       msg "adding #{p} to cache"
-      unless File.exist?(p)
+      if File.exist?(p)
+        msg "refreshing directory #{p} to ensure clean working environment"
+        rm_rf p
+      else
         msg "creating directory #{p}"
-        mkdir_p p
       end
+      mkdir_p p
     end
 
     File.open(@paths_file, 'a') { |f| f << expanded_paths.compact.join("\n") << "\n" }
