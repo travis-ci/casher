@@ -208,13 +208,7 @@ class Casher
   end
 
   def md5deep_available?
-    @md5deep_available ||= (system("which md5deep >/dev/null 2>&1") || install_md5deep)
-  end
-
-  def install_md5deep
-    if ENV['TRAVIS_OS_NAME'] == 'osx'
-      system('brew install md5deep')
-    end
+    @md5deep_available ||= system("which md5deep >/dev/null 2>&1")
   end
 
   def cached_directories
