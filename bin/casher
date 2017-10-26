@@ -135,7 +135,7 @@ class Casher
     msg "uploading archive"
     unless system "curl -T %p %p -f -v >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
       msg "failed to upload cache", :red
-      puts File.read("#{@casher_dir}/push.err.log"), File.read("#{@casher_dir}/push.log")
+      puts filter_http_params(File.read("#{@casher_dir}/push.err.log")), filter_http_params(File.read("#{@casher_dir}/push.log"))
     end
 
   end
@@ -237,6 +237,10 @@ class Casher
     end
 
     puts "#{marker}#{text}#{ANSI_RESET}"
+  end
+
+  def filter_http_params(text)
+    text.gsub(/\b(http[^\?]+)\?\S*/, '\1')
   end
 end
 
