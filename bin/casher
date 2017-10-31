@@ -177,7 +177,7 @@ class Casher
     compression_flag = file.end_with?('.tbz') ? 'j' : 'z'
 
     cmd = "tar -P#{compression_flag}#{flag}f #{Shellwords.escape(file)} #{Shellwords.join(args)}"
-    if ! system "sw_vers &>/dev/null" and system "sudo -v"
+    if ! system('sw_vers', %i[out err] => '/dev/null') and system "sudo -v"
       cmd = "sudo " + cmd
     end
     stdin, stdout, stderr, wait_thr = Open3.popen3(cmd)
