@@ -157,7 +157,7 @@ class Casher
         diff -B #{@checksum_file_before}.sorted #{@checksum_file_after} | \
         awk '/^[<>]/ {for (i=3; i<=NF; i++) printf(\"%s%s\", $(i), i<NF? OFS : \"\\n\")};' | sort | uniq > #{diff_file}
       SCRIPT
-      result = File.size(@checksum_file_before) == 0 || File.size(diff_file) > 0
+      result = (File.size(@checksum_file_before) == 0 && File.size(@checksum_file_after) > 0) || File.size(diff_file) > 0
 
       if File.size(diff_file) > 0
         first_bytes = File.read(diff_file, MD5DEEP_CHECK_LOG_LIMIT + 1)
