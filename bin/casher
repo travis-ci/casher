@@ -83,7 +83,7 @@ class Casher
     expanded_paths = paths.map { |p| File.expand_path(p) }
     expanded_paths.map do |p|
       if File.symlink? p
-        msg "#{p} is a symbolic link; not following", :yellow
+        msg "#{p} is a symbolic link to #{File.readlink p}; not following", :yellow
         next
       end
       msg "adding #{p} to cache"
