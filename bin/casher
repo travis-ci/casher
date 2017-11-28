@@ -23,6 +23,7 @@ class Casher
 
   ANSI_RED="\033[31;1m"
   ANSI_GREEN="\033[32;1m"
+  ANSI_YELLOW="\033[33;1m"
   ANSI_RESET="\033[0m"
   ANSI_CLEAR="\033[0K"
 
@@ -81,6 +82,10 @@ class Casher
   def add(*paths)
     expanded_paths = paths.map { |p| File.expand_path(p) }
     expanded_paths.map do |p|
+      if File.symlink? p
+        msg "#{p} is a symbolic link to #{File.readlink p}; not following", :yellow
+        next
+      end
       msg "adding #{p} to cache"
       unless File.exist?(p)
         msg "creating directory #{p}"
@@ -105,7 +110,7 @@ class Casher
       expanded_paths.map { |p| @mtimes[p] = Time.now.to_i }
 
       if md5deep_available?
-        system "md5deep -r #{expanded_paths.compact.map { |p| Shellwords.escape(p) }.join(' ')} | sort >> #{@checksum_file_before}"
+        system "md5deep -o f -r #{expanded_paths.compact.map { |p| Shellwords.escape(p) }.join(' ')} | sort >> #{@checksum_file_before}"
       else
         mtime_file = File.open(@mtime_file, 'w')
         mtime_file.write @mtimes.to_yaml
@@ -148,11 +153,11 @@ class Casher
       diff_file = File.expand_path('checksum_diff', @casher_dir)
       system("sort #{@checksum_file_before} | uniq > #{@checksum_file_before}.sorted")
       system(<<-SCRIPT)
-        md5deep -r #{paths.map { |p| Shellwords.escape(p) }.join(" ")} | sort | uniq > #{@checksum_file_after};
+        md5deep -o f -r #{paths.map { |p| Shellwords.escape(p) }.join(" ")} | sort | uniq > #{@checksum_file_after};
         diff -B #{@checksum_file_before}.sorted #{@checksum_file_after} | \
         awk '/^[<>]/ {for (i=3; i<=NF; i++) printf(\"%s%s\", $(i), i<NF? OFS : \"\\n\")};' | sort | uniq > #{diff_file}
       SCRIPT
-      result = File.size(@checksum_file_before) == 0 || File.size(diff_file) > 0
+      result = (File.size(@checksum_file_before) == 0 && File.size(@checksum_file_after) > 0) || File.size(diff_file) > 0
 
       if File.size(diff_file) > 0
         first_bytes = File.read(diff_file, MD5DEEP_CHECK_LOG_LIMIT + 1)
@@ -234,6 +239,8 @@ class Casher
       ANSI_GREEN
     when :red
       ANSI_RED
+    when :yellow
+      ANSI_YELLOW
     end
 
     puts "#{marker}#{text}#{ANSI_RESET}"
