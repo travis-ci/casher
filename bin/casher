@@ -72,9 +72,7 @@ class Casher
         break
       end
     end
-    unless archive_found
-      cleanup_cache
-    end
+    cleanup_cache unless archive_found
   end
 
   def cleanup_cache

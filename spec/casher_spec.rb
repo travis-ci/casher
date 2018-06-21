@@ -29,7 +29,7 @@ describe Casher do
       expect(subject).to receive(:system).with(/curl\b.*#{tgz_url.gsub('?','\?')}/m).and_raise(TimeoutError)
     end
 
-    it 'does not clean up the fetch_tar' do
+    it 'cleans up the fetch_tar' do
       expect(subject).to receive(:cleanup_cache)
       subject.run('fetch', tgz_url)
     end
