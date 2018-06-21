@@ -54,6 +54,7 @@ class Casher
   rescue TimeoutError
     line  = "casher #{command}"
     line += Shellwords.join(arguments) if command == "add"
+    cleanup_cache if command == "fetch"
     $stderr.puts "running `#{line}` took longer than #{@timeout} seconds and has been aborted.\nYou can extend the timeout with `cache.timeout`. See https://docs.travis-ci.com/user/caching/#Setting-the-timeout for details"
   end
 
@@ -72,10 +73,14 @@ class Casher
       end
     end
     unless archive_found
-      msg "could not download cache", :red
-      if File.exist? @fetch_tar
-        rm @fetch_tar
-      end
+      cleanup_cache
+    end
+  end
+
+  def cleanup_cache
+    msg "could not download cache", :red
+    if File.exist? @fetch_tar
+      rm @fetch_tar
     end
   end
 

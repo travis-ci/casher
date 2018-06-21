@@ -23,4 +23,16 @@ describe Casher do
       subject.run('fetch', tgz_url, tbz_url)
     end
   end
+
+  context 'when the curl call times out' do
+    before :each do
+      expect(subject).to receive(:system).with(/curl\b.*#{tgz_url.gsub('?','\?')}/m).and_raise(TimeoutError)
+    end
+
+    it 'does not clean up the fetch_tar' do
+      expect(subject).to receive(:cleanup_cache)
+      subject.run('fetch', tgz_url)
+    end
+
+  end
 end
