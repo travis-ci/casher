@@ -185,7 +185,7 @@ class Casher
     compression_flag = file.end_with?('.tbz') ? 'j' : 'z'
 
     cmd = "tar -P#{compression_flag}#{flag}f #{Shellwords.escape(file)} #{Shellwords.join(args)}"
-    if ! system('sw_vers', [:out, :err] => '/dev/null') and system "sudo -v"
+    if ! system('sw_vers', [:out, :err] => File::NULL) and system "sudo -v"
       cmd = "sudo " + cmd
     end
     stdin, stdout, stderr, wait_thr = Open3.popen3(cmd)
@@ -219,7 +219,7 @@ class Casher
   end
 
   def md5deep_available?
-    @md5deep_available ||= (system("which md5deep >/dev/null 2>&1") || install_md5deep)
+    @md5deep_available ||= (system("which md5deep", [:out, :err] => File::NULL) || install_md5deep)
   end
 
   def install_md5deep
