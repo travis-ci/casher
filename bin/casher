@@ -45,10 +45,13 @@ class Casher
 
     @counter = 0
 
+    @debug = true
+
     mkdir_p @casher_dir
   end
 
   def run(command, *arguments)
+    log "env=#{ENV.sort.inspect}"
     raise "unknown command" unless %w[fetch add push].include? command
     Timeout.timeout(@timeout) { send(command, *arguments) }
   rescue TimeoutError
@@ -252,6 +255,18 @@ class Casher
   def filter_http_params(text)
     text.gsub(/\b(http[^\?]+)\?\S*/, '\1')
   end
+
+  def debug?
+    !! @debug
+  end
+
+  def log(msg)
+    if debug?
+      $stderr.puts msg
+    end
+  end
 end
+
+$stderr.puts ARGV.inspect
 
 Casher.new.run(*ARGV) if $0 == __FILE__
