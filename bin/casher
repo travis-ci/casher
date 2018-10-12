@@ -1,0 +1,85 @@
+#!/bin/bash
+
+CURL_FORMAT=<<-EOF
+   time_namelookup:  %%{time_namelookup} s
+      time_connect:  %%{time_connect} s
+   time_appconnect:  %%{time_appconnect} s
+  time_pretransfer:  %%{time_pretransfer} s
+     time_redirect:  %%{time_redirect} s
+time_starttransfer:  %%{time_starttransfer} s
+    speed_download:  %%{speed_download} bytes/s
+                   ----------
+        time_total:  %%{time_total} s
+EOF
+
+ANSI_RED="\033[31;1m"
+ANSI_GREEN="\033[32;1m"
+ANSI_YELLOW="\033[33;1m"
+ANSI_RESET="\033[0m"
+ANSI_CLEAR="\033[0K"
+
+
+# TAR_DIR_NOT_FOUND_REGEXP = /(\w+): Not found in archive/
+
+MD5DEEP_CHECK_LOG_LIMIT=1000
+
+CASHER_DIR=$HOME/.casher
+
+function msg {
+  local text=$1
+  local color=$2
+  local marker
+
+  case $color in
+    green )
+      marker=$ANSI_GREEN
+      ;;
+    red )
+      marker=$ANSI_RED
+      ;;
+    yellow )
+      marker=$ANSI_YELLOW
+      ;;
+    * )
+      ;;
+  esac
+
+  echo -e "${marker}${text}${ANSI_RESET}"
+}
+
+function run {
+  local subcommand=$1
+  shift
+
+  case $subcommand in
+    fetch|add|push)
+    $subcommand $@
+      ;;
+    * )
+      echo "unknown command $subcommand"
+      exit 1
+      ;;
+  esac
+}
+
+function fetch {
+  msg "attempting to download cache archive"
+
+  for url in "$@"; do
+    IFS=/
+    for part in ${url%\?*}; do
+      penultimate=$ultimate
+      ultimate=$part
+    done
+    display_name="${penultimate}/${ultimate}"
+    unset IFS
+
+    msg "fetching ${display_name}" green
+
+    curl $url -o archive.tar.gz -f -s --retry 3 >fetch.log 2>fetch.err.log
+    if [[ $? = 0 ]]; then
+      msg "found cache"
+      break
+    fi
+  done
+}
