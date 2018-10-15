@@ -127,7 +127,9 @@ function add {
 }
 
 function push {
-:
+  changed_p
+  if [[ $CHANGED_P = TRUE ]]; then
+  fi
 }
 
 function install_md5deep {
@@ -151,11 +153,11 @@ function install_md5deep {
 }
 
 function changed_p {
-  if [[ -e ${FETCH_TAR} ]]; then
-    return TRUE
+  if [[ ! -e ${FETCH_TAR} ]]; then
+    CHANGED_P=TRUE
   fi
 
-  #statements
+  CHANGED_P=TRUE
 }
 
 function main {
