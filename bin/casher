@@ -171,11 +171,27 @@ function install_md5deep {
 }
 
 function changed_p {
+  local diff_file_size change_msg
+  unset CHANGED_P
+
   if [[ ! -e ${FETCH_TAR} ]]; then
     CHANGED_P=TRUE
   fi
 
-  CHANGED_P=TRUE
+  sort ${CHECKSUM_FILE_BEFORE} | uniq > ${CHECKSUM_FILE_BEFORE}.sorted
+  md5deep -o f -r $(<${PATHS_FILE}) | sort | uniq > ${CHECKSUM_FILE_AFTER}
+  diff -B ${CHECKSUM_FILE_BEFORE}.sorted ${CHECKSUM_FILE_AFTER} | \
+    awk '/^[<>]/ {for (i=3; i<=NF; i++) printf("%s%s", $(i), i<NF? OFS : "\n")};' | sort | uniq > ${DIFF_FILE}
+
+  if [[ -s ${DIFF_FILE} ]]; then # DIFF_FILE has nonzero file size
+    change_msg="changes detected (content changed, file is created, or file is deleted):\n$(head -c ${MD5DEEP_CHECK_LOG_LIMIT})\n"
+    diff_file_size=$(wc -c ${DIFF_FILE} | awk '{print $1}')
+    if [[ ${diff_file_size} > $MD5DEEP_CHECK_LOG_LIMIT ]]; then
+      change_msg="${change_msg}..."
+    fi
+    msg ${change_msg} green
+    CHANGED_P=TRUE
+  fi
 }
 
 function main {
