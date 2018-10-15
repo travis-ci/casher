@@ -87,10 +87,12 @@ function fetch {
 
     curl $url -o archive.tar.gz -f -s --retry 3 >fetch.log 2>fetch.err.log
     if [[ $? = 0 ]]; then
-      msg "found cache"
+      msg "found cache" green
       break
     fi
   done
+
+  msg "could not download cache" red
 }
 
 function add {
