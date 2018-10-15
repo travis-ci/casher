@@ -30,6 +30,8 @@ CHECKSUM_FILE_AFTER=${CASHER_DIR}/md5sums_after
 FETCH_TAR=${CASHER_DIR}/fetch.tbz
 PUSH_TAR=${CASHER_DIR}/push.tbz
 
+DIFF_FILE=${CASHER_DIR}/checksum_diff
+
 function setup {
   mkdir -p $CASHER_DIR
 }
@@ -127,8 +129,24 @@ function add {
 }
 
 function push {
+  local url
+  url=$1
+
   changed_p
-  if [[ $CHANGED_P = TRUE ]]; then
+  if [[ $CHANGED_P != TRUE ]]; then
+    msg "nothing changed" green
+    return
+  fi
+
+  msg "changes detected, packing new archive" green
+
+  tar -Pcjf ${PUSH_TAR} $(<${PATHS_FILE})
+
+  msg "uploading archive" green
+  curl -T ${PUSH_TAR} $url -f -v >${CASHER_DIR}/push.log 2>${CASHER_DIR}/push.err.log
+  if [[ $? -ne 0 ]]; then
+    msg "failed to upload cache" red
+    # TODO filter and dump logs
   fi
 }
 
