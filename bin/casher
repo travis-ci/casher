@@ -23,7 +23,16 @@ ANSI_CLEAR="\033[0K"
 
 MD5DEEP_CHECK_LOG_LIMIT=1000
 
-CASHER_DIR=$HOME/.casher
+CASHER_DIR=${HOME}/.casher
+PATHS_FILE=${CASHER_DIR}/paths
+CHECKSUM_FILE_BEFORE=${CASHER_DIR}/md5sums_before
+CHECKSUM_FILE_AFTER=${CASHER_DIR}/md5sums_after
+FETCH_TAR=${CASHER_DIR}/fetch.tbz
+PUSH_TAR=${CASHER_DIR}/push.tbz
+
+function setup {
+  mkdir -p $CASHER_DIR
+}
 
 function msg {
   local text=$1
@@ -83,3 +92,73 @@ function fetch {
     fi
   done
 }
+
+function add {
+  for path in "$@"; do
+    if [[ -L ${path} ]]; then
+      msg "${path} is a symbolic link to $(readlink ${paht}); not following"
+      continue
+    fi
+
+    msg "adding ${path} to cache"
+    if [[ ! -e "${path}" ]]; then
+      msg "creating directory ${path}"
+      mkdir -p ${path}
+    fi
+
+    echo "${path}" >> ${PATHS_FILE}
+  done
+
+  touch CHECKSUM_FILE_BEFORE
+
+  if [[ -e ${FETCH_TAR} ]]; then
+    # expand the archive, while recording directories not found in the archive
+    dir_not_found=$(tar xf ${FETCH_TAR} "$@" 2>&1 >/dev/null | grep 'Not found' | sed -e 's/tar: \(.*\): Not found.*$/\1/g')
+    IFS=" "
+    for dir in ${dir_not_found}; do
+      msg "${dir} is not yet cached" red
+    done
+    unset IFS
+  fi
+
+  md5deep -o f -r "$@" | sort >> ${CHECKSUM_FILE_BEFORE}
+}
+
+function push {
+:
+}
+
+function install_md5deep {
+  local os
+
+  if [[ -z $(command -v md5deep) ]]; then
+    msg "Installing md5deep"
+    os=$(uname | tr 'A-Z' 'a-z')
+    case ${os} in
+      darwin )
+        brew install md5deep
+        ;;
+      linux)
+        sudo apt-get install md5deep
+        ;;
+      msys_nt* | mingw*)
+        chocolatey install hashdeep
+        ;;
+    esac
+  fi
+}
+
+function changed_p {
+  if [[ -e ${FETCH_TAR} ]]; then
+    return TRUE
+  fi
+
+  #statements
+}
+
+function main {
+  setup
+  run "$@"
+}
+
+main "$@"
