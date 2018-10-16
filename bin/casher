@@ -190,7 +190,7 @@ function changed_p {
     if [[ ${diff_file_size} > $MD5DEEP_CHECK_LOG_LIMIT ]]; then
       change_msg="${change_msg}..."
     fi
-    msg ${change_msg} green
+    msg "${change_msg}" green
     CHANGED_P=TRUE
   fi
 }
