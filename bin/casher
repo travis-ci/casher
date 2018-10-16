@@ -37,6 +37,14 @@ function setup {
   mkdir -p $CASHER_DIR
 }
 
+function checksum_checker {
+  if [[ -n $(command -v md5deep64) ]]; then
+    echo "md5deep64"
+  else
+    echo "md5deep"
+  fi
+}
+
 function msg {
   local text=$1
   local color=$2
@@ -126,7 +134,7 @@ function add {
     unset IFS
   fi
 
-  md5deep -o f -r "$@" | sort >> ${CHECKSUM_FILE_BEFORE}
+  $(checksum_checker) -o f -r "$@" | sort >> ${CHECKSUM_FILE_BEFORE}
 }
 
 function push {
@@ -181,7 +189,7 @@ function changed_p {
   fi
 
   sort ${CHECKSUM_FILE_BEFORE} | uniq > ${CHECKSUM_FILE_BEFORE}.sorted
-  md5deep -o f -r $(<${PATHS_FILE}) | sort | uniq > ${CHECKSUM_FILE_AFTER}
+  $(checksum_checker) -o f -r $(<${PATHS_FILE}) | sort | uniq > ${CHECKSUM_FILE_AFTER}
   diff -B ${CHECKSUM_FILE_BEFORE}.sorted ${CHECKSUM_FILE_AFTER} | \
     awk '/^[<>]/ {for (i=3; i<=NF; i++) printf("%s%s", $(i), i<NF? OFS : "\n")};' | sort | uniq > ${DIFF_FILE}
 
