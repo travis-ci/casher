@@ -33,6 +33,7 @@ PUSH_TAR=${CASHER_DIR}/push.tbz
 DIFF_FILE=${CASHER_DIR}/checksum_diff
 
 function setup {
+  install_md5deep
   mkdir -p $CASHER_DIR
 }
 
