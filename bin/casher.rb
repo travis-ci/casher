@@ -62,7 +62,7 @@ class Casher
     msg "attempting to download cache archive"
     archive_found = false
     urls.each do |url|
-      msg "fetching #{%r(([^/]+?/[^/]+?)(\?.*)?$).match(url)[1]}"
+      msg "fetching #{cache_archive_name(url)}"
 
       @fetch_tar  = File.expand_path('fetch.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
@@ -130,9 +130,9 @@ class Casher
       return
     end
 
-    msg "changes detected, packing new archive"
-
     @push_tar  = File.expand_path('push.tgz', @casher_dir) if path_ext(url) == 'tgz'
+
+    msg "changes detected, packing new archive"
 
     tar(:c, @push_tar, *cached_directories) do
       @counter += 1
@@ -140,8 +140,10 @@ class Casher
       sleep 1
     end
 
-    msg "uploading archive"
-    unless system "curl -T %p %p -f -v >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
+    msg "uploading #{cache_archive_name(url)}"
+    if system "curl -T %p %p -f -v >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
+      msg "cache uploaded"
+    else
       msg "failed to upload cache", :red
       puts filter_http_params(File.read("#{@casher_dir}/push.err.log")), filter_http_params(File.read("#{@casher_dir}/push.log"))
     end
@@ -205,6 +207,10 @@ class Casher
     end
 
     [stdout, errors]
+  end
+
+  def cache_archive_name(url)
+    %r(([^/]+?\/[^/]+?)(\?.*)?\?).match(url)[1]
   end
 
   def path_ext(url)
