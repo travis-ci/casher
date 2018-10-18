@@ -86,13 +86,7 @@ function fetch {
   msg "attempting to download cache archive"
 
   for url in "$@"; do
-    IFS=/
-    for part in ${url%\?*}; do
-      penultimate=$ultimate
-      ultimate=$part
-    done
-    display_name="${penultimate}/${ultimate}"
-    unset IFS
+    display_name=$(display_name $url)
 
     msg "fetching ${display_name}" green
 
@@ -151,9 +145,11 @@ function push {
 
   tar -Pcjf ${PUSH_TAR} $(<${PATHS_FILE})
 
-  msg "uploading archive" green
+  msg "uploading $(display_name $url)" green
   curl -T ${PUSH_TAR} $url -f -v >${CASHER_DIR}/push.log 2>${CASHER_DIR}/push.err.log
-  if [[ $? -ne 0 ]]; then
+  if [[ $? -eq 0 ]]; then
+    msg "cache uploaded" green
+  else
     msg "failed to upload cache" red
     # TODO filter and dump logs
   fi
@@ -202,6 +198,19 @@ function changed_p {
     msg "${change_msg}" green
     CHANGED_P=TRUE
   fi
+}
+
+function display_name {
+  local url penultimate ultimate
+  url=$1
+
+  IFS=/
+  for part in ${url%\?*}; do
+    penultimate=$ultimate
+    ultimate=$part
+  done
+  unset IFS
+  echo "${penultimate}/${ultimate}"
 }
 
 function main {
