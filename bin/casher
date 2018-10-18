@@ -62,7 +62,8 @@ class Casher
     msg "attempting to download cache archive"
     archive_found = false
     urls.each do |url|
-      msg "fetching #{%r(([^/]+?/[^/]+?)(\?.*)?$).match(url)[1]}"
+      msg "full url => #{url}"
+      msg "fetching #{cache_archive_name(url)}"
 
       @fetch_tar  = File.expand_path('fetch.tgz', @casher_dir) if path_ext(url) == 'tgz'
 
@@ -140,7 +141,7 @@ class Casher
       sleep 1
     end
 
-    msg "uploading #{%r(([^/]+?\/[^/]+?)(\?.*)?\?).match(url)[1]}"
+    msg "uploading #{cache_archive_name(url)}"
     if system "curl -T %p %p -f -v >#{@casher_dir}/push.log 2>#{@casher_dir}/push.err.log" % [@push_tar, url]
       msg "cache uploaded"
     else
@@ -207,6 +208,10 @@ class Casher
     end
 
     [stdout, errors]
+  end
+
+  def cache_archive_name(url)
+    %r(([^/]+?\/[^/]+?)(\?.*)?\?).match(url)[1]
   end
 
   def path_ext(url)
