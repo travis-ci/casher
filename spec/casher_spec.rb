@@ -1,4 +1,4 @@
-load File.join(File.dirname(__FILE__), '..', 'bin', 'casher')
+load File.join(File.dirname(__FILE__), '..', 'bin', 'casher.rb')
 
 describe Casher do
   let(:tbz_url) { 'https://example.com/afdfad/master/cache--rvm-default--gemfile-Gemfile.tbz?param1=value1&param2=value2' }
