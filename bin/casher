@@ -203,7 +203,7 @@ class Casher
 
     if !status.success? && flag.to_s != 'x'
       msg "FAILED: #{cmd}", :red
-      puts errors.delete_if {|l| l.start_with? 'PUT'}, output
+      puts errors.split.delete_if {|l| l.start_with? 'PUT'}, output
     end
 
     [stdout, errors]
