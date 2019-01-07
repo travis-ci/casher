@@ -64,7 +64,7 @@ function msg {
       ;;
   esac
 
-  echo -e "${marker}${text}${ANSI_RESET}"
+  printf "${marker}%s${ANSI_RESET}\n" "$text"
 }
 
 function run {
