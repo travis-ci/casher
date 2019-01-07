@@ -103,7 +103,7 @@ function fetch {
 function add {
   for path in "$@"; do
     if [[ -L ${path} ]]; then
-      msg "${path} is a symbolic link to $(readlink ${paht}); not following"
+      msg "${path} is a symbolic link to $(readlink ${path}); not following"
       continue
     fi
 
