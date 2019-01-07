@@ -90,7 +90,7 @@ function fetch {
 
     msg "fetching ${display_name}" green
 
-    curl $url -o ${FETCH_TAR} -f -s --retry 3 >fetch.log 2>fetch.err.log
+    curl $url -o ${FETCH_TAR} -f -s --retry 3 >${CASHER_DIR}/fetch.log 2>${CASHER_DIR}/fetch.err.log
     if [[ $? = 0 ]]; then
       msg "found cache" green
       return
