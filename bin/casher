@@ -120,7 +120,7 @@ function add {
 
   if [[ -e ${FETCH_TAR} ]]; then
     # expand the archive, while recording directories not found in the archive
-    dir_not_found=$(tar xf ${FETCH_TAR} "$@" 2>&1 | grep 'Not found' | sed -e 's/tar: \(.*\): Not found.*$/\1/g')
+    dir_not_found=$(tar xPf ${FETCH_TAR} "$@" 2>&1 | grep 'Not found' | sed -e 's/tar: \(.*\): Not found.*$/\1/g')
     IFS=" "
     for dir in ${dir_not_found}; do
       msg "${dir} is not yet cached" red
