@@ -116,7 +116,7 @@ function add {
     echo "${path}" >> ${PATHS_FILE}
   done
 
-  touch CHECKSUM_FILE_BEFORE
+  touch ${CHECKSUM_FILE_BEFORE}
 
   if [[ -e ${FETCH_TAR} ]]; then
     # expand the archive, while recording directories not found in the archive
