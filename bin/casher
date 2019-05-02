@@ -143,7 +143,8 @@ function push {
 
   msg "changes detected, packing new archive" green
 
-  tar -Pcjf ${PUSH_TAR} $(<${PATHS_FILE})
+  if [[ $(awk '{print tolower($0)}' <<< ${url##*.}) = "tbz" ]]; then compression_flag="j"; else compression_flag="z"; fi;
+  tar -Pc${compression_flag}f ${PUSH_TAR} $(<${PATHS_FILE})
 
   msg "uploading $(display_name $url)" green
   curl -T ${PUSH_TAR} $url -f -v >${CASHER_DIR}/push.log 2>${CASHER_DIR}/push.err.log
