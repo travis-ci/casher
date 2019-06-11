@@ -68,6 +68,16 @@ function msg {
 }
 
 function run {
+  local archive_type=$1
+  case $archive_type in
+    cache|workspace)
+    shift
+    ;;
+    *)
+    archive_type=cache
+    ;;
+  esac
+
   local subcommand=$1
   shift
 
@@ -83,7 +93,7 @@ function run {
 }
 
 function fetch {
-  msg "attempting to download cache archive"
+  msg "attempting to download ${archive_type} archive"
 
   for url in "$@"; do
     display_name=$(display_name $url)
@@ -92,12 +102,12 @@ function fetch {
 
     curl $url -o ${FETCH_TAR} -f -s --retry 3 >${CASHER_DIR}/fetch.log 2>${CASHER_DIR}/fetch.err.log
     if [[ $? = 0 ]]; then
-      msg "found cache" green
+      msg "found ${archive_type}" green
       return
     fi
   done
 
-  msg "could not download cache" red
+  msg "could not download ${archive_type}" red
 }
 
 function add {
@@ -107,7 +117,7 @@ function add {
       continue
     fi
 
-    msg "adding ${path} to cache"
+    msg "adding ${path} to ${archive_type}"
     if [[ ! -e "${path}" ]]; then
       msg "creating directory ${path}"
       mkdir -p ${path}
@@ -148,9 +158,9 @@ function push {
   msg "uploading $(display_name $url)" green
   curl -T ${PUSH_TAR} $url -f -v >${CASHER_DIR}/push.log 2>${CASHER_DIR}/push.err.log
   if [[ $? -eq 0 ]]; then
-    msg "cache uploaded" green
+    msg "${archive_type} uploaded" green
   else
-    msg "failed to upload cache" red
+    msg "failed to upload ${archive_type}" red
     # TODO filter and dump logs
   fi
 }
