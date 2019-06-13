@@ -1,10 +1,5 @@
 language: ruby
 
-sudo: false
+rvm: 2.5
 
-rvm:
-  - 1.9.3
-  - 2.1.5
-
-script:
-  - bundle exec rspec spec
+script: bundle exec rspec spec
