@@ -158,7 +158,7 @@ function push {
 
   msg "changes detected, packing new archive" green
 
-  tar -Pczf ${PUSH_TAR} $(<${PATHS_FILE})
+  GZIP=-3 tar -Pczf ${PUSH_TAR} $(<${PATHS_FILE})
 
   msg "uploading $(display_name $url)" green
   curl -T ${PUSH_TAR} $url -f -v >${CASHER_DIR}/push.log 2>${CASHER_DIR}/push.err.log
