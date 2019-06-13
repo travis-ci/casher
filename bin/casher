@@ -111,6 +111,11 @@ function fetch {
 }
 
 function add {
+  if [[ $# -eq 0 ]]; then
+    msg "No directory specified to be added" yellow
+    return
+  fi
+
   for path in "$@"; do
     if [[ -L ${path} ]]; then
       msg "${path} is a symbolic link to $(readlink ${path}); not following"
