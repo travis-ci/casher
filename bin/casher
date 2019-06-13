@@ -229,7 +229,6 @@ function display_name {
 }
 
 function main {
-  msg "Running casher in bash" green
   setup
   run "$@"
 }
