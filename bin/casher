@@ -116,7 +116,9 @@ function add {
     return
   fi
 
-  for path in "$@"; do
+  paths=$(expand_path "$@")
+
+  for path in ${paths}; do
     if [[ -L ${path} ]]; then
       msg "${path} is a symbolic link to $(readlink ${path}); not following"
       continue
@@ -135,7 +137,7 @@ function add {
 
   if [[ -e ${FETCH_TAR} ]]; then
     # expand the archive, while recording directories not found in the archive
-    dir_not_found=$(tar xPf ${FETCH_TAR} "$@" 2>&1 | grep 'Not found' | sed -e 's/tar: \(.*\): Not found.*$/\1/g')
+    dir_not_found=$(tar xPf ${FETCH_TAR} "${paths}" 2>&1 | grep 'Not found' | sed -e 's/tar: \(.*\): Not found.*$/\1/g')
     IFS=" "
     for dir in ${dir_not_found}; do
       msg "${dir} is not yet cached" red
@@ -143,7 +145,7 @@ function add {
     unset IFS
   fi
 
-  $(checksum_checker) -o f -r "$@" | sort >> ${CHECKSUM_FILE_BEFORE}
+  $(checksum_checker) -o f -r ${paths} | sort >> ${CHECKSUM_FILE_BEFORE}
 }
 
 function push {
@@ -226,6 +228,10 @@ function display_name {
   done
   unset IFS
   echo "${penultimate}/${ultimate}"
+}
+
+function expand_path {
+  ruby -e "puts ARGV.map{|x| File.expand_path(x)}.join(' ')" "$@"
 }
 
 function main {
