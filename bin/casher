@@ -111,7 +111,6 @@ function fetch {
 }
 
 function add {
-  set -x
   if [[ $# -eq 0 ]]; then
     msg "No directory specified to be added" yellow
     return
@@ -145,8 +144,6 @@ function add {
     done
     unset IFS
   fi
-
-  set +x
 
   $(checksum_checker) -o f -r ${paths} | sort >> ${CHECKSUM_FILE_BEFORE}
 }
