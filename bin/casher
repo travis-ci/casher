@@ -32,6 +32,31 @@ PUSH_TAR=${CASHER_DIR}/push.tgz
 
 DIFF_FILE=${CASHER_DIR}/checksum_diff
 
+args=()
+
+function process_flags {
+  local name
+  for arg in $@; do
+     case $arg in
+      --name )
+        shift
+        name=$1
+        shift
+        PATHS_FILE=${CASHER_DIR}/${name}.paths
+        CHECKSUM_FILE_BEFORE=${CASHER_DIR}/${name}.md5sums_before
+        CHECKSUM_FILE_AFTER=${CASHER_DIR}/${name}.md5sums_after
+        FETCH_TAR=${CASHER_DIR}/${name}.tgz
+        PUSH_TAR=${CASHER_DIR}/${name}.tgz
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+
+  args=($(echo "$@"))
+}
+
 function setup {
   install_md5deep
   mkdir -p $CASHER_DIR
@@ -235,8 +260,10 @@ function expand_path {
 }
 
 function main {
+  # $0 [opts] [cache|workspace] [globs]
+  process_flags "$@"
   setup
-  run "$@"
+  run "${args[@]}"
 }
 
 main "$@"
