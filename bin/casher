@@ -45,8 +45,8 @@ function process_flags {
         PATHS_FILE=${CASHER_DIR}/${name}.paths
         CHECKSUM_FILE_BEFORE=${CASHER_DIR}/${name}.md5sums_before
         CHECKSUM_FILE_AFTER=${CASHER_DIR}/${name}.md5sums_after
-        FETCH_TAR=${CASHER_DIR}/${name}.tgz
-        PUSH_TAR=${CASHER_DIR}/${name}.tgz
+        FETCH_TAR=${CASHER_DIR}/${name}-fetch.tgz
+        PUSH_TAR=${CASHER_DIR}/${name}-push.tgz
         ;;
       *)
         break
