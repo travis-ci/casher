@@ -40,7 +40,7 @@ function process_flags {
      case $arg in
       --name )
         shift
-        name=$1
+        name=$(echo $1)
         shift
         PATHS_FILE=${CASHER_DIR}/${name}.paths
         CHECKSUM_FILE_BEFORE=${CASHER_DIR}/${name}.md5sums_before
@@ -121,6 +121,7 @@ function fetch {
   msg "attempting to download ${archive_type} archive"
 
   for url in "$@"; do
+    url=$(echo $url)
     display_name=$(display_name $url)
 
     msg "fetching ${display_name}" green
@@ -175,7 +176,7 @@ function add {
 
 function push {
   local url
-  url=$1
+  url=$(echo $1)
 
   changed_p
   if [[ $CHANGED_P != TRUE ]]; then
