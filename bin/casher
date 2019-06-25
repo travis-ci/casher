@@ -176,7 +176,7 @@ function add {
 
 function push {
   local url
-  url=$(echo $1)
+  url=$(echo $(echo $1))
 
   changed_p
   if [[ $CHANGED_P != TRUE ]]; then
