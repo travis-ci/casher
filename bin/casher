@@ -240,6 +240,12 @@ function changed_p {
     return
   fi
 
+  if [[ ! -e ${CHECKSUM_FILE_BEFORE} ]]; then
+    echo "Unable to determine file changes. ${archive_type} will not be uploaded" yellow
+    CHANGED_P=FALSE
+    return
+  fi
+
   sort ${CHECKSUM_FILE_BEFORE} | uniq > ${CHECKSUM_FILE_BEFORE}.sorted
   $(checksum_checker) -o f -r $(<${PATHS_FILE}) | sort | uniq > ${CHECKSUM_FILE_AFTER}
   diff -B ${CHECKSUM_FILE_BEFORE}.sorted ${CHECKSUM_FILE_AFTER} | \
