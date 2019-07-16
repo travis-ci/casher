@@ -158,6 +158,15 @@ function add {
     echo "${path}" >> ${PATHS_FILE}
   done
 
+  if [[ ! -e ${PATHS_FILE} ]]; then
+    echo "No directory has been added to the ${archive_type}." \
+      "Caching may not work." \
+      "This may be due to an error in configuration, or your repository may not be" \
+      "set up to use shortcuts (e.g., Podfile for 'cocoapods', Gemfile for 'bundler')." \
+      "Please consult documentation at https://docs.travis-ci.com/user/caching." yellow
+    return
+  fi
+
   touch ${CHECKSUM_FILE_BEFORE}
 
   if [[ -e ${FETCH_TAR} ]]; then
@@ -181,9 +190,14 @@ function push {
   if [[ $CHANGED_P != TRUE ]]; then
     msg "nothing changed" green
     return
+  else
+    msg "changes detected, packing new archive" green
   fi
 
-  msg "changes detected, packing new archive" green
+  if [[ ! -e ${PATHS_FILE} ]]; then
+    msg "${PATHS_FILE} does not exist; unable to upload ${archive_type}" red
+    return
+  fi
 
   GZIP=-3 tar -Pczf ${PUSH_TAR} $(<${PATHS_FILE})
 
