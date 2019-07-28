@@ -207,7 +207,7 @@ function changed_p {
     awk '/^[<>]/ {for (i=3; i<=NF; i++) printf("%s%s", $(i), i<NF? OFS : "\n")};' | sort | uniq > ${DIFF_FILE}
 
   if [[ -s ${DIFF_FILE} ]]; then # DIFF_FILE has nonzero file size
-    change_msg="changes detected (content changed, file is created, or file is deleted):\n$(head -c ${MD5DEEP_CHECK_LOG_LIMIT} ${DIFF_FILE})\n"
+    change_msg="changes detected (content changed, file is created, or file is deleted):"$'\n'"$(head -c ${MD5DEEP_CHECK_LOG_LIMIT} ${DIFF_FILE})"$'\n'
     diff_file_size=$(wc -c ${DIFF_FILE} | awk '{print $1}')
     if [[ ${diff_file_size} -gt ${MD5DEEP_CHECK_LOG_LIMIT} ]]; then
       change_msg="${change_msg}..."
