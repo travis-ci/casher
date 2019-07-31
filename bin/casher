@@ -89,7 +89,7 @@ function msg {
       ;;
   esac
 
-  printf "${marker}%s${ANSI_RESET}\n" "$text"
+  printf "${marker}%b${ANSI_RESET}\n" "$text"
 }
 
 function run {
