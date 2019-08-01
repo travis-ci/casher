@@ -118,21 +118,21 @@ function run {
 }
 
 function fetch {
-  msg "attempting to download ${archive_type} archive"
+  msg "attempting to download ${archive_type//\\/\\\\/} archive"
 
   for url in "$@"; do
     display_name=$(display_name $url)
 
-    msg "fetching ${display_name}" green
+    msg "fetching ${display_name//\\/\\\\/}" green
 
     curl $url -o ${FETCH_TAR} -f -s --retry 3 >${CASHER_DIR}/fetch.log 2>${CASHER_DIR}/fetch.err.log
     if [[ $? = 0 ]]; then
-      msg "found ${archive_type}" green
+      msg "found ${archive_type//\\/\\\\/}" green
       return
     fi
   done
 
-  msg "could not download ${archive_type}" red
+  msg "could not download ${archive_type//\\/\\\\/}" red
 }
 
 function add {
@@ -145,13 +145,13 @@ function add {
 
   for path in ${paths}; do
     if [[ -L ${path} ]]; then
-      msg "${path} is a symbolic link to $(readlink ${path}); not following"
+      msg "${path//\\/\\\\/} is a symbolic link to $(readlink ${path} | sed 's/\\/\\\\/g'); not following"
       continue
     fi
 
-    msg "adding ${path} to ${archive_type}"
+    msg "adding ${path//\\/\\\\/} to ${archive_type//\\/\\\\/}"
     if [[ ! -e "${path}" ]]; then
-      msg "creating directory ${path}"
+      msg "creating directory ${path//\\/\\\\/}"
       mkdir -p ${path}
     fi
 
@@ -165,7 +165,7 @@ function add {
     dir_not_found=$(tar xPf ${FETCH_TAR} ${paths} 2>&1 | grep 'Not found' | sed -e 's/tar: \(.*\): Not found.*$/\1/g')
     IFS=" "
     for dir in ${dir_not_found}; do
-      msg "${dir} is not yet cached" red
+      msg "${dir//\\/\\\\/} is not yet cached" red
     done
     unset IFS
   fi
@@ -187,12 +187,12 @@ function push {
 
   GZIP=-3 tar -Pczf ${PUSH_TAR} $(<${PATHS_FILE})
 
-  msg "uploading $(display_name $url)" green
+  msg "uploading $(display_name $url | sed 's/\\/\\\\/g')" green
   curl -T ${PUSH_TAR} $url -f -v >${CASHER_DIR}/push.log 2>${CASHER_DIR}/push.err.log
   if [[ $? -eq 0 ]]; then
-    msg "${archive_type} uploaded" green
+    msg "${archive_type//\\/\\\\/} uploaded" green
   else
-    msg "failed to upload ${archive_type}" red
+    msg "failed to upload ${archive_type//\\/\\\\/}" red
     # TODO filter and dump logs
   fi
 }
@@ -232,7 +232,7 @@ function changed_p {
     awk '/^[<>]/ {for (i=3; i<=NF; i++) printf("%s%s", $(i), i<NF? OFS : "\n")};' | sort | uniq > ${DIFF_FILE}
 
   if [[ -s ${DIFF_FILE} ]]; then # DIFF_FILE has nonzero file size
-    change_msg="changes detected (content changed, file is created, or file is deleted):\n$(head -c ${MD5DEEP_CHECK_LOG_LIMIT} ${DIFF_FILE})\n"
+    change_msg="changes detected (content changed, file is created, or file is deleted):\n$(head -c ${MD5DEEP_CHECK_LOG_LIMIT} ${DIFF_FILE}| sed 's/\\/\\\\/g')\n"
     diff_file_size=$(wc -c ${DIFF_FILE} | awk '{print $1}')
     if [[ ${diff_file_size} -gt ${MD5DEEP_CHECK_LOG_LIMIT} ]]; then
       change_msg="${change_msg}..."
