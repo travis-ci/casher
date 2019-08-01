@@ -40,7 +40,7 @@ function process_flags {
      case $arg in
       --name )
         shift
-        name=$1
+        name=$(ruby -ruri -e "print URI.escape('$1', File::SEPARATOR)")
         shift
         PATHS_FILE=${CASHER_DIR}/${name}.paths
         CHECKSUM_FILE_BEFORE=${CASHER_DIR}/${name}.md5sums_before
