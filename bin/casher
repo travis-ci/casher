@@ -243,7 +243,7 @@ function changed_p {
   if [[ -s ${DIFF_FILE} ]]; then # DIFF_FILE has nonzero file size
     msg "changes detected (content changed, file is created, or file is deleted):" green
     change_msg=$(head -c ${MD5DEEP_CHECK_LOG_LIMIT} ${DIFF_FILE})$'\n'
-    diff_file_size=$(wc -c ${DIFF_FILE} | awk '{print $1}')
+    diff_file_size=$(wc -c < ${DIFF_FILE})
     if [[ ${diff_file_size} -gt ${MD5DEEP_CHECK_LOG_LIMIT} ]]; then
       change_msg="${change_msg}..."
     fi
