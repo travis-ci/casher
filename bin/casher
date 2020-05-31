@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 CURL_FORMAT=<<-EOF
    time_namelookup:  %%{time_namelookup} s
