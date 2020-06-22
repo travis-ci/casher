@@ -222,6 +222,9 @@ function install_md5deep {
       msys_nt* | mingw*)
         chocolatey install hashdeep
         ;;
+      freebsd)
+        sudo pkg install -y md5deep
+        ;;
     esac
   fi
 }
