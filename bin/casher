@@ -141,7 +141,8 @@ function add {
     return
   fi
 
-  paths=$(expand_path "$@")
+  # paths=$(expand_path "$@")
+  paths="$@"
 
   for path in ${paths}; do
     if [[ -L ${path} ]]; then
@@ -170,7 +171,7 @@ function add {
     unset IFS
   fi
 
-  $(checksum_checker) -o f -r ${paths} | sort >> ${CHECKSUM_FILE_BEFORE}
+  $(checksum_checker) -l -o f -r ${paths} | sort >> ${CHECKSUM_FILE_BEFORE}
 }
 
 function push {
@@ -239,7 +240,7 @@ function changed_p {
   fi
 
   sort ${CHECKSUM_FILE_BEFORE} | uniq > ${CHECKSUM_FILE_BEFORE}.sorted
-  $(checksum_checker) -o f -r $(<${PATHS_FILE}) | sort | uniq > ${CHECKSUM_FILE_AFTER}
+  $(checksum_checker) -l -o f -r $(<${PATHS_FILE}) | sort | uniq > ${CHECKSUM_FILE_AFTER}
   diff -B ${CHECKSUM_FILE_BEFORE}.sorted ${CHECKSUM_FILE_AFTER} | \
     awk '/^[<>]/ {for (i=3; i<=NF; i++) printf("%s%s", $(i), i<NF? OFS : "\n")};' | sort | uniq > ${DIFF_FILE}
 
