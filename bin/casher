@@ -211,7 +211,7 @@ function install_md5deep {
         # on apt, `md5deep` is a wrapper for `hashdeep`, which provides
         # /usr/bin/hashdeep
         if [[ -z $(command -v hashdeep) ]]; then
-          sudo apt-get install md5deep
+          sudo apt-get install md5deep -y
         fi
         # on Xenial only, the apt package does not contain `/usr/bin/md5deep`
         # (but it does, Bionic onward) so we create a symlink to sidestep the issue
