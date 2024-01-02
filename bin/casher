@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 CURL_FORMAT=<<-EOF
    time_namelookup:  %%{time_namelookup} s
@@ -31,6 +31,31 @@ FETCH_TAR=${CASHER_DIR}/fetch.tgz
 PUSH_TAR=${CASHER_DIR}/push.tgz
 
 DIFF_FILE=${CASHER_DIR}/checksum_diff
+
+args=()
+
+function process_flags {
+  local name
+  for arg in $@; do
+     case $arg in
+      --name )
+        shift
+        name=$1
+        shift
+        PATHS_FILE=${CASHER_DIR}/${name}.paths
+        CHECKSUM_FILE_BEFORE=${CASHER_DIR}/${name}.md5sums_before
+        CHECKSUM_FILE_AFTER=${CASHER_DIR}/${name}.md5sums_after
+        FETCH_TAR=${CASHER_DIR}/${name}-fetch.tgz
+        PUSH_TAR=${CASHER_DIR}/${name}-push.tgz
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+
+  args=($(echo "$@"))
+}
 
 function setup {
   install_md5deep
@@ -137,7 +162,7 @@ function add {
 
   if [[ -e ${FETCH_TAR} ]]; then
     # expand the archive, while recording directories not found in the archive
-    dir_not_found=$(tar xPf ${FETCH_TAR} "${paths}" 2>&1 | grep 'Not found' | sed -e 's/tar: \(.*\): Not found.*$/\1/g')
+    dir_not_found=$(tar xPf ${FETCH_TAR} ${paths} 2>&1 | grep 'Not found' | sed -e 's/tar: \(.*\): Not found.*$/\1/g')
     IFS=" "
     for dir in ${dir_not_found}; do
       msg "${dir} is not yet cached" red
@@ -160,7 +185,7 @@ function push {
 
   msg "changes detected, packing new archive" green
 
-  GZIP=-3 tar -Pczf ${PUSH_TAR} $(<${PATHS_FILE})
+  GZIP=-3 tar --format=posix -Pczf ${PUSH_TAR} $(<${PATHS_FILE})
 
   msg "uploading $(display_name $url)" green
   curl -T ${PUSH_TAR} $url -f -v >${CASHER_DIR}/push.log 2>${CASHER_DIR}/push.err.log
@@ -183,10 +208,22 @@ function install_md5deep {
         brew install md5deep
         ;;
       linux)
-        sudo apt-get install md5deep
+        # on apt, `md5deep` is a wrapper for `hashdeep`, which provides
+        # /usr/bin/hashdeep
+        if [[ -z $(command -v hashdeep) ]]; then
+          sudo apt-get install md5deep
+        fi
+        # on Xenial only, the apt package does not contain `/usr/bin/md5deep`
+        # (but it does, Bionic onward) so we create a symlink to sidestep the issue
+        if [[ ! -e /usr/bin/md5deep && -e /usr/bin/hashdeep ]]; then
+          sudo ln -sf /usr/bin/hashdeep /usr/bin/md5deep
+        fi
         ;;
       msys_nt* | mingw*)
         chocolatey install hashdeep
+        ;;
+      freebsd)
+        sudo pkg install -y md5deep
         ;;
     esac
   fi
@@ -235,8 +272,10 @@ function expand_path {
 }
 
 function main {
+  # $0 [opts] [cache|workspace] [globs]
+  process_flags "$@"
   setup
-  run "$@"
+  run "${args[@]}"
 }
 
 main "$@"

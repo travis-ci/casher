@@ -3,3 +3,5 @@ language: ruby
 rvm: 2.5
 
 script: bundle exec rspec spec
+before_install:
+  - gem install rubygems-update -v 3.4.22
